@@ -9,16 +9,30 @@
  *   1. APP_VERSION を上げる
  *   2. CHANGELOG の先頭に新しい版を追加する
  */
-window.KanjiApp = window.KanjiApp || {};
+// Service Worker（sw.js）からも読み込むため、window が無い環境では self を使う
+var KANJI_APP_ROOT = typeof window !== 'undefined' ? window : self;
+KANJI_APP_ROOT.KanjiApp = KANJI_APP_ROOT.KanjiApp || {};
 
 (function (KA) {
   'use strict';
 
   KA.APP_NAME = '漢字マスター';
-  KA.APP_VERSION = '1.2.0';
+  KA.APP_VERSION = '1.3.0';
 
   // 新しいものを先頭に追加していく
   KA.CHANGELOG = [
+    {
+      version: '1.3.0',
+      date: '2026-09-26',
+      changes: [
+        '「文の中の読み」を漢字部分だけ答える方式に変更（例：急（いそ）いで）',
+        '送り仮名つきの語に対応（送り仮名は問題文に残ります）',
+        '「受け取る」など複数の漢字の読みを個別に入力できるようにした',
+        '複数解答欄に対応（欄をタップして選び、ひらがなパネルでも入力できます）',
+        '答え合わせで欄ごとの○×と正しい読みを表示',
+        '複数の解答欄を使う問題を8問追加（申し込む・乗り換える など）',
+      ],
+    },
     {
       version: '1.2.0',
       date: '2026-09-26',
@@ -61,4 +75,4 @@ window.KanjiApp = window.KanjiApp || {};
   ];
 
   KA.APP_UPDATED = KA.CHANGELOG[0].date;
-})(window.KanjiApp);
+})(KANJI_APP_ROOT.KanjiApp);

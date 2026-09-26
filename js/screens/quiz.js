@@ -459,6 +459,8 @@
       )
     );
 
+    playState.blankInputs = null;
+    playState.pad = null;
     const card = renderPrompt(el, q, type, kids);
 
     const answerArea = h('div', { class: 'answer-area' });
@@ -471,6 +473,7 @@
 
     el.classList.toggle('with-pad', method === 'hiragana' && playState.usePad);
     if (method === 'choice') renderChoiceInput(answerArea, q);
+    else if (q.type === 'sentence') renderBlankAnswerArea(answerArea, method, kids);
     else renderTextInput(answerArea, method, kids);
 
     answerArea.appendChild(
@@ -484,18 +487,7 @@
    */
   function renderPrompt(el, q, type, kids) {
     const promptText = kids ? type.prompt.kids : type.prompt.standard;
-    if (q.type === 'sentence') {
-      // 文の中の読み: 文を表示し、対象の語を「太字・下線・背景色・かっこ」で強調（色だけに頼らない）
-      const [before, target, after] = RD.splitSentence(q.entry);
-      el.appendChild(h('p', { class: 'play-prompt' }, `「${q.word}」` + (kids ? 'の よみは？' : 'の読みは？')));
-      const card = h(
-        'div',
-        { class: 'sentence-card', lang: 'ja' },
-        h('p', { class: 'sentence-text' }, before, h('mark', { class: 'sentence-target' }, target), after)
-      );
-      el.appendChild(card);
-      return card;
-    }
+    if (q.type === 'sentence') return renderSentencePrompt(el, q, promptText);
     if (q.type === 'life') {
       // 生活漢字: 場面ラベル + 看板風の語（将来 display/image で看板・値札風などに変えられる）
       const cat = RD.category(q.entry.category);
@@ -514,6 +506,235 @@
     const card = h('div', { class: 'kanji-card', lang: 'ja' }, h('span', { class: 'kanji-big' }, q.kanji));
     el.appendChild(card);
     return card;
+  }
+
+  /* ---------------- 文の中の読み: 漢字（　）送り仮名 の解答欄 ---------------- */
+
+  /**
+   * 文を「前の文 + 漢字（解答欄）送り仮名 … + 後ろの文」で表示する
+   * 入力式では解答欄が入力欄になり、4択では空の（　）を表示する
+   */
+  function renderSentencePrompt(el, q, promptText) {
+    const s = QuizFlow.session;
+    const method = s.inputMethod;
+    const usePad = method === 'hiragana' && playState.usePad;
+    const [before, , after] = RD.splitSentence(q.entry);
+    el.appendChild(h('p', { class: 'play-prompt' }, promptText));
+    const inputs = [];
+    let blankIndex = 0;
+    const word = h('span', { class: 'sentence-word' });
+    let lastBlank = null;
+    q.entry.segments.forEach((seg) => {
+      if (!seg.reading) {
+        // 送り仮名は直前の「漢字（欄）」とひとかたまりにして、途中で改行されないようにする
+        const okuri = h('span', { class: 'seg-okuri' }, seg.text);
+        if (lastBlank) lastBlank.appendChild(okuri);
+        else word.appendChild(okuri);
+        return;
+      }
+      const i = blankIndex++;
+      let box;
+      if (method === 'choice') {
+        box = h('span', { class: 'blank-box', 'aria-label': `${seg.text}の読み` }, '\u3000');
+      } else {
+        box = h('input', {
+          type: 'text',
+          class: 'blank-input',
+          lang: 'ja',
+          autocomplete: 'off',
+          autocorrect: 'off',
+          autocapitalize: 'off',
+          spellcheck: 'false',
+          enterkeyhint: i < q.blanks.length - 1 ? 'next' : 'done',
+          'aria-label': `「${seg.text}」の読み（${i + 1}つめ）`,
+          readonly: usePad ? true : null,
+          inputmode: usePad ? 'none' : 'text',
+          dataset: { i: String(i) },
+        });
+        inputs.push(box);
+      }
+      const group = h(
+        'span',
+        { class: 'seg-group' },
+        h(
+          'span',
+          { class: 'seg-blank' },
+          h('span', { class: 'seg-kanji' }, seg.text),
+          h('span', { class: 'blank-paren', 'aria-hidden': 'true' }, '（'),
+          box,
+          h('span', { class: 'blank-paren', 'aria-hidden': 'true' }, '）')
+        )
+      );
+      word.appendChild(group);
+      lastBlank = group;
+    });
+    const card = h('div', { class: 'sentence-card sentence-fill', lang: 'ja' }, h('p', { class: 'sentence-text' }, before, word, after));
+    el.appendChild(card);
+    if (method === 'choice' && q.choiceKind === 'full') {
+      // 解答欄が複数ある問題の4択は、語全体の読みを選ぶ
+      const kids = KA.Profiles.active().displayMode === 'kids';
+      el.appendChild(h('p', { class: 'blank-hint' }, kids ? `「${q.word}」の よみを えらぼう` : `「${q.word}」全体の読みを選びましょう`));
+    }
+    playState.blankInputs = inputs;
+    playState.activeBlank = 0;
+    return card;
+  }
+
+  /** 解答欄の幅を入力に合わせる */
+  function fitBlank(input) {
+    const len = Math.max(2, (input.value || '').length);
+    input.style.width = len + 1.2 + 'em';
+  }
+
+  /** 入力する解答欄を選ぶ（選択中は太い枠＋背景色＋下の▲で表示） */
+  function selectBlank(i) {
+    const inputs = playState.blankInputs || [];
+    if (!inputs[i]) return;
+    playState.activeBlank = i;
+    inputs.forEach((inp, j) => {
+      inp.classList.toggle('active', j === i);
+      inp.parentNode.classList.toggle('active', j === i);
+    });
+    if (playState.pad) playState.pad.setValue(inputs[i].value);
+    updateBlankPreview();
+  }
+
+  function updateBlankPreview() {
+    const inp = (playState.blankInputs || [])[playState.activeBlank];
+    if (!playState.preview || !inp) return;
+    playState.preview.textContent = KA.Romaji.hasLatin(inp.value) ? '→ ' + KA.Romaji.toHiragana(inp.value, false) : '\u00a0';
+  }
+
+  function blankValues() {
+    return (playState.blankInputs || []).map((inp) => inp.value);
+  }
+
+  function submitBlanks() {
+    if (!playState || playState.answered) return;
+    const kids = KA.Profiles.active().displayMode === 'kids';
+    const values = blankValues();
+    const empty = values.findIndex((v) => !String(v).trim());
+    if (empty >= 0) {
+      KA.UI.toast(
+        values.length > 1 ? (kids ? 'まだ こたえて いない ところが あるよ' : 'まだ答えていないところがあります') : kids ? 'よみを いれてね' : '読みを入力してください',
+        'info'
+      );
+      selectBlank(empty);
+      if (!playState.pad) playState.blankInputs[empty].focus();
+      return;
+    }
+    submitAnswer(values);
+  }
+
+  /** 文の中の読み（入力式）の回答エリア */
+  function renderBlankAnswerArea(area, method, kids) {
+    const usePad = method === 'hiragana' && playState.usePad;
+    const inputs = playState.blankInputs;
+    const preview = h('div', { class: 'romaji-preview', 'aria-live': 'polite' });
+    playState.preview = preview;
+    playState.pad = null;
+    if (inputs.length > 1) {
+      area.appendChild(h('p', { class: 'blank-hint' }, kids ? 'しかくを タップして えらんでから いれてね' : '（　）をタップして、それぞれの読みを入れましょう'));
+    }
+    area.appendChild(preview);
+    inputs.forEach((inp, i) => {
+      fitBlank(inp);
+      inp.addEventListener('focus', () => selectBlank(i));
+      inp.addEventListener('click', () => selectBlank(i));
+      inp.addEventListener('input', () => {
+        fitBlank(inp);
+        updateBlankPreview();
+      });
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+          e.preventDefault();
+          e.stopPropagation(); // 同じ Enter で「次へ」まで進まないように
+          if (playState.answered) return;
+          const nextEmpty = inputs.findIndex((x, j) => j > i && !x.value.trim());
+          if (nextEmpty >= 0) inputs[nextEmpty].focus();
+          else submitBlanks();
+        }
+      });
+    });
+    if (usePad) {
+      const pad = KA.KanaPad.create({
+        onInput(v) {
+          const inp = inputs[playState.activeBlank];
+          if (!inp) return;
+          inp.value = v;
+          fitBlank(inp);
+        },
+        onSubmit: submitBlanks,
+      });
+      playState.pad = pad;
+      area.appendChild(pad.el);
+    } else {
+      area.appendChild(h('div', { class: 'answer-row center' }, h('button', { class: 'btn btn-primary answer-submit', type: 'button', onclick: submitBlanks }, kids ? 'こたえる' : '答える')));
+    }
+    if (method === 'hiragana') {
+      area.appendChild(
+        h(
+          'button',
+          {
+            class: 'btn btn-link small',
+            type: 'button',
+            onclick: () => {
+              playState.usePad = !playState.usePad;
+              renderQuestion();
+            },
+          },
+          usePad ? '📱 スマホ・PCのキーボードで入力する' : '🔤 ひらがなパネルで入力する'
+        )
+      );
+    }
+    selectBlank(0);
+    if (!usePad) setTimeout(() => inputs[0] && inputs[0].focus(), 50);
+  }
+
+  /** 漢字（読み）送り仮名 の形で表示する。marks=true で欄ごとの ○× を付ける */
+  function segmentLine(item, values, marks) {
+    let i = 0;
+    return h(
+      'span',
+      { class: 'seg-line' },
+      item.segments.map((seg) => {
+        if (!seg.reading) return h('span', null, seg.text);
+        const v = values[i++];
+        return h(
+          'span',
+          { class: 'seg-answer' + (marks && v ? (v.correct ? ' ok' : ' ng') : '') },
+          seg.text,
+          '（',
+          h('span', { class: 'seg-answer-text' }, v ? v.text || '\u3000' : '\u3000'),
+          marks && v ? h('span', { class: 'seg-mark', 'aria-label': v.correct ? '正解' : '不正解' }, v.correct ? '○' : '×') : null,
+          '）'
+        );
+      })
+    );
+  }
+
+  /** 文の中の読みの答え合わせ表示 */
+  function sentenceExplanation(q, check, kids, giveUp) {
+    const item = q.entry;
+    const correctVals = q.blanks.map((b) => ({ text: b.readings[0], correct: true }));
+    const rows = [];
+    if (check.correct) {
+      rows.push(h('div', { class: 'word-answer seg-result' }, segmentLine(item, check.blanks && !check.whole ? check.blanks.map((b) => ({ text: b.answer, correct: true })) : correctVals, false)));
+    } else {
+      if (!giveUp && check.blanks && !check.whole) {
+        rows.push(h('div', { class: 'seg-row' }, h('span', { class: 'seg-row-label' }, kids ? 'きみの こたえ' : 'あなたの答え'), segmentLine(item, check.blanks.map((b) => ({ text: b.answer, correct: b.correct })), true)));
+      }
+      rows.push(h('div', { class: 'seg-row' }, h('span', { class: 'seg-row-label' }, kids ? 'ただしい こたえ' : '正しい答え'), segmentLine(item, correctVals, false)));
+      // まちがえた欄の正しい読み
+      if (check.blanks && !check.whole && q.blanks.length > 1) {
+        const wrong = q.blanks.filter((b, i) => !check.blanks[i].correct);
+        if (wrong.length) rows.push(h('div', { class: 'muted small' }, wrong.map((b) => `${b.text} → ${b.readings.join('・')}`).join('　')));
+      }
+    }
+    const alt = q.blanks.filter((b) => b.readings.length > 1);
+    if (alt.length) rows.push(h('div', { class: 'muted small' }, (kids ? 'ほかの よみ：' : 'ほかの読み方：') + alt.map((b) => `${b.text}（${b.readings.slice(1).join('・')}）`).join('、')));
+    rows.push(h('div', { class: 'word-sentence' }, h('ruby', null, item.word, h('rt', null, item.reading)), ' ― ' + item.sentence));
+    return h('div', { class: 'word-explain' }, rows);
   }
 
   /** 答え合わせで表示する解説（文の中・生活漢字） */
@@ -659,7 +880,7 @@
     const p = KA.Profiles.active();
     const kids = p.displayMode === 'kids';
     const q = KA.Quiz.currentQuestion(s);
-    if (!giveUp && !String(answer || '').trim()) {
+    if (!giveUp && !Array.isArray(answer) && !String(answer || '').trim()) {
       KA.UI.toast(kids ? 'よみを いれてね' : '読みを入力してください', 'info');
       return;
     }
@@ -670,6 +891,8 @@
       matched: check.matched,
       inputMethod: s.inputMethod,
       answer: check.normalized,
+      blanks: check.blanks,
+      whole: check.whole,
     });
     KA.Sound.play(check.correct ? 'correct' : 'wrong');
 
@@ -686,6 +909,23 @@
       });
     }
     playState.card.classList.add(check.correct ? 'is-correct' : 'is-wrong');
+    // 文の中の読み: 解答欄ごとに ○× を付ける（色だけでなく記号でも）
+    if (q.type === 'sentence' && playState.blankInputs && check.blanks && !check.whole) {
+      playState.blankInputs.forEach((inp, i) => {
+        const b = check.blanks[i];
+        if (!b) return;
+        inp.parentNode.classList.remove('active');
+        inp.parentNode.classList.add(b.correct ? 'blank-ok' : 'blank-ng');
+        inp.parentNode.appendChild(h('span', { class: 'blank-mark', 'aria-label': b.correct ? '正解' : '不正解' }, b.correct ? '○' : '×'));
+      });
+    }
+    if (q.type === 'sentence' && s.inputMethod === 'choice') {
+      // 4択: （　）に正しい読みを表示
+      playState.card.querySelectorAll('.blank-box').forEach((box, i) => {
+        box.textContent = q.blanks[i].readings[0];
+        box.classList.add('filled');
+      });
+    }
 
     const entry = q.entry;
     const fb = playState.feedback;
@@ -708,8 +948,10 @@
             ? h('span', { class: 'feedback-matched' }, `「${check.matched.reading}」` + (kids ? '' : check.matched.type === 'on' ? '（音読み）' : '（訓読み）'))
             : null
         ),
-        !check.correct && !giveUp && check.normalized ? h('div', { class: 'feedback-your' }, (kids ? 'きみの こたえ：' : 'あなたの答え：') + check.normalized) : null,
-        q.ptype === 'single' ? readingsSummary(entry, kids) : wordExplanation(q, kids),
+        !check.correct && !giveUp && check.normalized && !(q.type === 'sentence' && check.blanks && !check.whole)
+          ? h('div', { class: 'feedback-your' }, (kids ? 'きみの こたえ：' : 'あなたの答え：') + check.normalized)
+          : null,
+        q.ptype === 'single' ? readingsSummary(entry, kids) : q.type === 'sentence' ? sentenceExplanation(q, check, kids, giveUp) : wordExplanation(q, kids),
         q.ptype === 'single' && entry.compounds.length
           ? h(
               'div',

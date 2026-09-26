@@ -149,6 +149,9 @@
           'dl',
           { class: 'detail-list' },
           row(kids ? 'よみ' : '読み', item.readings.join('・')),
+          item.ptype === 'sentence' && item.answerMode === 'segments'
+            ? row(kids ? 'こたえかた' : '答え方', item.segments.map((sg) => (sg.reading ? `${sg.text}（${sg.readings.join('／')}）` : sg.text)).join(''))
+            : null,
           row(kids ? 'ぶん' : '文', item.sentence ? h('span', null, before, h('mark', { class: 'sentence-target small' }, target), after) : null),
           row(kids ? 'いみ' : '意味', item.meaning || null),
           row(

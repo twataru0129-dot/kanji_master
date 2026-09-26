@@ -46,7 +46,7 @@ js/router.js            画面切り替え
 js/screens/*.js         各画面
 
 data/kanji-grade1〜6.js 小学1〜6年の漢字（1,026字）
-data/sentences.js       文の中の読み（140問）
+data/sentences.js       文の中の読み（148問。漢字部分だけを答える answerMode: whole / segments）
 data/life-kanji.js      生活漢字（10場面・154語）
 data/sources.js         情報源・ライセンス表示
 assets/icons/           アプリアイコン（kanji- で始まる名前）
@@ -70,6 +70,13 @@ tools/                  データ・アイコン生成スクリプト
 中学〜高校はアプリ独自の学習レベルなので、`officialGrade` は `null` にしてください。
 
 ### 文の中の読み・生活漢字の問題を追加する
+文の中の読みは「漢字で書かれている部分の読みだけ」を答えます（v1.3.0〜）。
+- 熟語・熟字訓・漢字1字 → `answerMode: 'whole', reading: 'うちゅう'`（語全体で1つの解答欄）
+- 送り仮名つき → `answerMode: 'segments', segments: [{ text: '急', reading: 'いそ' }, { text: 'いで' }]`
+- 解答欄が複数 → `segments: [{ text: '受', reading: 'う' }, { text: 'け' }, { text: '取', reading: 'と' }, { text: 'る' }]`
+
+segments の text をつなげると target と一致する必要があります（読み込み時にブラウザのコンソールへ警告が出ます）。
+
 `data/sentences.js` / `data/life-kanji.js` の末尾に1行追加するだけです（形式は各ファイル冒頭のコメント参照）。
 `id` は学習記録のキーなので、一度公開したら変更しないでください。
 生活漢字の場面（カテゴリー）は `registerLifeCategories` に追加できます。

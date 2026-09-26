@@ -21,7 +21,17 @@
       const ptype = q.ptype || 'single';
       // 一文字は profile.kanji、文の中・生活漢字は profile.records[問題タイプ] に記録（q.kanji は漢字または問題ID）
       const store = KA.Proficiency.storeFor(profile, ptype);
+      // 解答欄が複数あっても 1問 として記録する（全部正解で正解）
       const info = KA.Proficiency.recordAnswerIn(store, q.kanji, result.correct, now);
+      // 文の中の読み: どの解答欄をまちがえたかを数えておく（将来「『取』の読みが苦手」などの分析用）
+      //   rec.bw = [1つ目の欄の不正解数, 2つ目の欄の不正解数, ...]
+      if (ptype === 'sentence' && Array.isArray(result.blanks) && !result.whole) {
+        const rec = store[q.kanji];
+        rec.bw = Array.isArray(rec.bw) ? rec.bw : [];
+        result.blanks.forEach((b, i) => {
+          rec.bw[i] = (rec.bw[i] || 0) + (b.correct ? 0 : 1);
+        });
+      }
       KA.History.recordAnswer(profile, {
         kanji: q.kanji,
         correct: result.correct,
@@ -38,6 +48,7 @@
         kanji: q.kanji, // 一文字は漢字、それ以外は問題ID
         ptype,
         label: ptype === 'single' ? q.kanji : q.word,
+        blanks: result.blanks || null, // 文の中の読み: 欄ごとの答えと正誤
         correct: result.correct,
         answer: result.answer || '',
         matched: result.matched ? result.matched.reading : null,
