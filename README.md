@@ -72,7 +72,9 @@ tools/                  データ・アイコン生成スクリプト
 ### 文の中の読み・生活漢字の問題を追加する
 `data/sentences.js` / `data/life-kanji.js` の末尾に1行追加するだけです（形式は各ファイル冒頭のコメント参照）。
 `id` は学習記録のキーなので、一度公開したら変更しないでください。
-生活漢字の場面（カテゴリー）は `registerLifeCategories` に追加できます。`meaning`（意味問題用）、`image` / `display`（看板風の表示用）も持たせられます。
+生活漢字の場面（カテゴリー）は `registerLifeCategories` に追加できます。
+追加した場面は、生活漢字の「場面をえらぼう」画面に自動で表示されます（`kidsLabel` でキッズ表示用の名前も指定できます）。
+場面は URL `#/quiz-words?type=life&scene=school` で指定でき、`scene=school,work` のようにカンマ区切りで複数指定にも拡張できる設計です。`meaning`（意味問題用）、`image` / `display`（看板風の表示用）も持たせられます。
 
 ### 問題形式を追加する（熟語・部首・送り仮名など）
 `js/quiz.js` の `QUESTION_TYPES` に `build` と `check` を実装し `available: true` にします。

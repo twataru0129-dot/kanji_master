@@ -9,16 +9,16 @@
  * ・id は学習記録のキーなので変更しないでください。追加は各カテゴリーの末尾に。
  */
 KanjiApp.ReadingData.registerLifeCategories([
-  { id: 'school', label: '学校', icon: '🏫' },
-  { id: 'home', label: '家・生活', icon: '🏠' },
-  { id: 'station', label: '駅・電車・バス', icon: '🚉' },
-  { id: 'shopping', label: '買い物', icon: '🛒' },
-  { id: 'hospital', label: '病院・薬局', icon: '🏥' },
-  { id: 'work', label: '仕事・職場', icon: '🏢' },
-  { id: 'public', label: '公共施設', icon: '🏛️' },
-  { id: 'restaurant', label: '飲食店', icon: '🍽️' },
-  { id: 'safety', label: '安全・防災', icon: '🚨' },
-  { id: 'signs', label: '標識・案内表示', icon: '🪧' },
+  { id: 'school', label: '学校', kidsLabel: 'がっこう', icon: '🏫' },
+  { id: 'home', label: '家・生活', kidsLabel: 'いえ・くらし', icon: '🏠' },
+  { id: 'station', label: '駅・電車・バス', kidsLabel: 'えき・でんしゃ・バス', icon: '🚉' },
+  { id: 'shopping', label: '買い物', kidsLabel: 'かいもの', icon: '🛒' },
+  { id: 'hospital', label: '病院・薬局', kidsLabel: 'びょういん・くすりや', icon: '🏥' },
+  { id: 'work', label: '仕事・職場', kidsLabel: 'しごと', icon: '🏢' },
+  { id: 'public', label: '公共施設', kidsLabel: 'やくしょ・としょかん', icon: '🏛️' },
+  { id: 'restaurant', label: '飲食店', kidsLabel: 'おみせで たべる', icon: '🍽️' },
+  { id: 'safety', label: '安全・防災', kidsLabel: 'あんぜん・ぼうさい', icon: '🚨' },
+  { id: 'signs', label: '標識・案内表示', kidsLabel: 'ひょうしき・あんない', icon: '🪧' },
 ]);
 
 KanjiApp.ReadingData.registerLife([

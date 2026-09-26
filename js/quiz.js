@@ -249,12 +249,18 @@
       return size === 'all' ? list : list.slice(0, size);
     },
 
-    /** 文の中の読み・生活漢字: 登録されている全データから size 問（重複なし） */
+    /**
+     * 文の中の読み・生活漢字: 登録データから size 問（'all' で全問）。1回の中で同じ問題は出さない
+     * opts.categories: 生活漢字の場面の配列（null = すべて）。opts.category（1つ）も受け付ける
+     */
     words(profile, ptype, size, opts) {
       const now = Date.now();
       let pool = KA.ReadingData.items(ptype);
-      // 将来: 生活漢字のカテゴリー指定
-      if (opts && opts.category) pool = pool.filter((it) => it.category === opts.category);
+      if (ptype === 'life' && opts) {
+        const cats = opts.categories || (opts.category ? [opts.category] : null);
+        if (cats && cats.length) pool = KA.ReadingData.lifeIn(cats);
+      }
+      if (size === 'all' || !(size > 0)) size = pool.length;
       // 未学習・低習熟を少し優先しつつ、最近出た問題は後回し
       const scored = spreadShuffle(pool, profile, now).map((e, i) => {
         const rec = recOf(profile, e);
@@ -363,6 +369,8 @@
       return {
         mode: opts.mode || 'normal',
         problemType,
+        // 生活漢字の場面（null = すべて）。履歴・もう一度に使う
+        lifeCategories: problemType === 'life' && opts.categories && opts.categories.length ? opts.categories.slice() : null,
         levelId: opts.levelId || 'mixed',
         size: opts.size || entries.length,
         entries,

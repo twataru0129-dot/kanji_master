@@ -150,3 +150,17 @@ body.mode-kids {
 .mode-kids .ptype-desc {
   font-size: 1rem;
 }
+
+/* v1.2.0 生活漢字の場面ボタン（キッズ表示は大きく） */
+.mode-kids .scene-icon {
+  font-size: 3rem;
+}
+
+.mode-kids .scene-name {
+  font-size: 1.1rem;
+}
+
+.mode-kids .scene-button {
+  min-height: 130px;
+  border-radius: 24px;
+}

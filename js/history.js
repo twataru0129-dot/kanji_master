@@ -120,6 +120,13 @@
         // [キー, 正解=1, 問題タイプ（一文字は省略）]
         results: session.results.map((r) => (r.ptype && r.ptype !== 'single' ? [r.kanji, r.correct ? 1 : 0, r.ptype] : [r.kanji, r.correct ? 1 : 0])),
       };
+      // 生活漢字の場面: 1つなら lifeCategory: 'school'、すべてなら 'all'、複数なら lifeCategories も保存
+      // （v1.2.0 より前の履歴には無い。無い場合は場面なしとして表示）
+      if (record.problemType === 'life') {
+        const cats = session.lifeCategories;
+        record.lifeCategory = cats && cats.length === 1 ? cats[0] : cats && cats.length > 1 ? 'multi' : 'all';
+        if (cats && cats.length > 1) record.lifeCategories = cats.slice();
+      }
       profile.history.unshift(record);
       if (profile.history.length > MAX_HISTORY) profile.history.length = MAX_HISTORY;
       if (session.completed) {
@@ -151,9 +158,15 @@
       const type = KA.ReadingData.typeLabel(ptype, kids);
       let level = '';
       if (ptype === 'single' && record.levelId && record.levelId !== 'mixed') level = KA.KanjiDB.levelLabel(record.levelId);
+      // 生活漢字の場面: 「生活漢字（学校）」のように表示
+      let scene = '';
+      if (ptype === 'life' && record.lifeCategory) {
+        const cats = record.lifeCategory === 'multi' ? record.lifeCategories : record.lifeCategory === 'all' ? null : [record.lifeCategory];
+        scene = KA.ReadingData.categoriesLabel(cats, kids, false);
+      }
       // 見出し: 一文字は「小学1年」、それ以外は問題タイプ名
-      const title = level || type || (kids ? 'いろいろ' : 'ミックス');
-      return { mode, level: title, type, title };
+      const title = level || (scene ? `${type}（${scene}）` : type) || (kids ? 'いろいろ' : 'ミックス');
+      return { mode, level: title, type, title, scene };
     },
   };
 
