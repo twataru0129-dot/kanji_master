@@ -34,7 +34,7 @@
     const ih = H - pad.t - pad.b;
     const slot = iw / Math.max(items.length, 10);
     const bw = Math.max(4, Math.min(28, slot - 2));
-    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': '直近のクイズの正答率グラフ' });
+    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': '直近の問題の正答率グラフ' });
     [0, 50, 100].forEach((v) => {
       const y = pad.t + ih - (v / 100) * ih;
       root.appendChild(svg('line', { x1: pad.l, x2: W - pad.r, y1: y, y2: y, class: 'chart-grid' }));
@@ -80,6 +80,46 @@
     );
   }
 
+  /** 問題タイプ別の正答率（一文字・文の中・生活漢字） */
+  function typeRows(profile, kids) {
+    const RD = KA.ReadingData;
+    return h(
+      'div',
+      { class: 'grade-bars' },
+      ['single', 'sentence', 'life'].map((t) => {
+        const ts = (profile.stats.typeStats && profile.stats.typeStats[t]) || { q: 0, c: 0, sessions: 0 };
+        const rate = U.percent(ts.c, ts.q);
+        return h(
+          'div',
+          { class: 'grade-bar-row type-row' },
+          h('span', { class: 'grade-bar-label' }, RD.PROBLEM_TYPES[t].icon),
+          h('span', { class: 'type-row-main' }, h('span', { class: 'type-row-name' }, RD.typeLabel(t, kids)), KA.UI.progressBar(ts.q ? ts.c / ts.q : 0, RD.typeLabel(t) + 'の正答率')),
+          h('span', { class: 'grade-bar-value' }, ts.q ? rate + '%' : '―'),
+          kids ? null : h('span', { class: 'grade-bar-sub' }, `${ts.c}/${ts.q}問`)
+        );
+      })
+    );
+  }
+
+  /** 文の中・生活漢字の語のボタン一覧 */
+  function wordChips(ids, profile, ptype) {
+    const store = P.storeFor(profile, ptype);
+    return h(
+      'div',
+      { class: 'kanji-chip-list' },
+      ids.map((id) => {
+        const item = KA.ReadingData.get(id);
+        const rec = store[id] || {};
+        return h(
+          'button',
+          { class: 'kanji-chip word-chip ' + P.levelInfo(P.level(store[id])).className, type: 'button', onclick: () => KA.WordDetail.open(id) },
+          h('span', { class: 'kanji-chip-char', lang: 'ja' }, item.word),
+          h('span', { class: 'kanji-chip-sub' }, `○${rec.c || 0} ×${rec.w || 0}`)
+        );
+      })
+    );
+  }
+
   function kanjiChips(list, profile) {
     return h(
       'div',
@@ -97,17 +137,19 @@
   }
 
   function historyList(profile, kids) {
-    if (!profile.history.length) return h('p', { class: 'muted' }, kids ? 'まだ きろくが ないよ。クイズに ちょうせんしよう！' : 'まだ記録がありません');
+    if (!profile.history.length) return h('p', { class: 'muted' }, kids ? 'まだ きろくが ないよ。もんだいに ちょうせんしよう！' : 'まだ記録がありません');
     return h(
       'ol',
       { class: 'history-list' },
       profile.history.map((r) => {
-        const label = KA.History.sessionLabel(r);
+        const label = KA.History.sessionLabel(r, kids);
+        const sub = [label.mode];
+        if (label.level !== label.type && label.type && label.mode !== label.type) sub.push(label.type);
         return h(
           'li',
           { class: 'history-item' + (r.rate === 100 ? ' perfect' : '') },
           h('span', { class: 'history-date' }, U.formatShortDate(r.date)),
-          h('span', { class: 'history-main' }, h('span', { class: 'history-level' }, label.level), h('span', { class: 'history-mode' }, `${label.mode}・${r.total}問` + (r.completed ? '' : '（中断）'))),
+          h('span', { class: 'history-main' }, h('span', { class: 'history-level' }, label.title), h('span', { class: 'history-mode' }, `${sub.join('・')}・${r.total}問` + (r.completed ? '' : '（中断）'))),
           h('span', { class: 'history-score' }, `${r.correct}問正解`),
           h('span', { class: 'history-rate' }, r.rate === 100 ? '💮 100%' : r.rate + '%')
         );
@@ -141,7 +183,7 @@
           h(
             'section',
             { class: 'stat-row' },
-            tile('総問題数', st.totalQuestions + '問', `クイズ ${st.totalSessions}回クリア`),
+            tile('総問題数', st.totalQuestions + '問', `問題 ${st.totalSessions}回クリア`),
             tile('総正解数', st.totalCorrect + '問', `正答率 ${U.percent(st.totalCorrect, st.totalQuestions)}%`),
             tile('現在の連続正解', st.currentStreak + '問', `歴代最高 ${st.bestStreak}問`),
             tile('連続学習日数', KA.History.currentDayStreak(p, now) + '日', `最高 ${st.bestDayStreak}日・合計 ${st.studyDays}日`)
@@ -156,6 +198,7 @@
       }
 
       el.appendChild(h('section', { class: 'card' }, h('h2', { class: 'card-title' }, kids ? 'がくねんごとの しゅうじゅくど' : '学年別の習熟率'), gradeBars(p, kids)));
+      el.appendChild(h('section', { class: 'card' }, h('h2', { class: 'card-title' }, kids ? 'もんだいの しゅるいごと' : '問題タイプ別の成績'), typeRows(p, kids)));
 
       const weak = P.weakList(p, now).slice(0, 10);
       el.appendChild(
@@ -227,6 +270,25 @@
         card.appendChild(h('p', { class: 'muted' }, kids ? 'にがてな かんじは ないよ！ すごい！' : '苦手漢字はありません。この調子！'));
       }
       el.appendChild(card);
+
+      // 文の中・生活漢字の苦手（問題タイプ別）
+      ['sentence', 'life'].forEach((ptype) => {
+        const ids = P.weakItems(p, ptype, now);
+        if (!ids.length) return;
+        el.appendChild(
+          h(
+            'section',
+            { class: 'card' },
+            h(
+              'div',
+              { class: 'card-title-row' },
+              h('h2', { class: 'card-title' }, (kids ? 'にがて：' : '苦手：') + KA.ReadingData.typeLabel(ptype, kids) + ` ${ids.length}${kids ? 'こ' : '問'}`),
+              h('button', { class: 'btn btn-small btn-primary', type: 'button', onclick: () => KA.QuizFlow.startFixed(ids.slice(0, 10), 'weak') }, kids ? 'れんしゅう' : '復習する')
+            ),
+            wordChips(ids, p, ptype)
+          )
+        );
+      });
 
       const recentWrong = Object.keys(p.kanji)
         .filter((k) => DB.get(k) && p.kanji[k].lw && U.daysSince(p.kanji[k].lw, now) <= 7 && !weak.includes(k))

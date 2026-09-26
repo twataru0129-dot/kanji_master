@@ -10,7 +10,7 @@
   const U = KA.Utils;
 
   const MENU = [
-    { id: 'quiz', icon: '📝', label: 'クイズ', kids: 'クイズ', desc: '学年と問題数をえらんで挑戦' },
+    { id: 'quiz', icon: '📝', label: '問題', kids: 'もんだい', desc: '一文字・文の中・生活漢字' },
     { id: 'weak', icon: '💪', label: '苦手漢字', kids: 'にがて', desc: '苦手な漢字をおまかせで復習' },
     { id: 'zukan', icon: '📖', label: '漢字図鑑', kids: 'ずかん', desc: '読み・部首・熟語をしらべる' },
     { id: 'mastery', icon: '🗺️', label: '習熟度', kids: 'マップ', desc: '学年ごとの習熟度マップ' },
@@ -74,7 +74,7 @@
             h(
               'span',
               { class: 'today-sub' },
-              kids ? 'きょうの おすすめ もんだいに ちょうせん！' : '間違えた漢字・苦手な漢字・未学習の漢字をバランスよく出題'
+              kids ? 'きょうの おすすめ もんだいに ちょうせん！' : '一文字・文の中・生活漢字から、間違えた問題や苦手な問題をまぜて出題'
             )
           ),
           h('span', { class: 'today-go', 'aria-hidden': 'true' }, doneToday ? 'もう1回 ›' : 'スタート ›')

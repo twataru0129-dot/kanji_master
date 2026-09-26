@@ -123,7 +123,10 @@
 
     /** 回答の正規化: 空白除去・全角英字→半角・カタカナ→ひらがな・小文字化 */
     normalizeAnswer(str) {
-      let s = String(str == null ? '' : str).trim();
+      let s = String(str == null ? '' : str);
+      // 全角英数・半角カナなどの表記ゆれをそろえる（NFKC）
+      if (s.normalize) s = s.normalize('NFKC');
+      s = s.trim();
       s = s.replace(/[\s　]+/g, '');
       s = s.replace(/[Ａ-Ｚａ-ｚ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
       s = s.toLowerCase();

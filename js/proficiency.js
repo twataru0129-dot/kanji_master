@@ -3,7 +3,7 @@
  * ------------------------------------------------------------
  * 漢字 1 文字ごとに学習記録を持ち、そこから 5 段階の習熟度を計算します。
  *
- * 学習記録（profile.kanji[漢字]）:
+ * 学習記録（一文字の読み: profile.kanji[漢字] / 文の中・生活漢字: profile.records[問題タイプ][問題ID]）:
  *   c  : 累計正解数
  *   w  : 累計不正解数
  *   s  : この漢字の連続正解数
@@ -129,11 +129,20 @@
      * @returns {object} 変化の情報（実績判定などに使う）
      */
     recordAnswer(profile, kanji, correct, now) {
+      return Proficiency.recordAnswerIn(profile.kanji, kanji, correct, now);
+    },
+
+    /**
+     * 任意の記録置き場（store）に回答を記録する
+     * 一文字の読みは profile.kanji、文の中・生活漢字は profile.records[問題タイプ] を使う。
+     */
+    recordAnswerIn(store, key, correct, now) {
       now = now || Date.now();
-      let rec = profile.kanji[kanji];
+      const kanji = key;
+      let rec = store[key];
       if (!rec) {
         rec = { c: 0, w: 0, s: 0, r: '', f: now, t: 0 };
-        profile.kanji[kanji] = rec;
+        store[key] = rec;
       }
       const beforeLevel = Proficiency.level(rec, now);
       const wasWeak = Proficiency.isWeak(rec, now) || rec.wk === 1;
@@ -236,6 +245,66 @@
           const rb = profile.kanji[b];
           return Proficiency.level(rb, now) - Proficiency.level(ra, now) || (rb.c || 0) - (ra.c || 0);
         });
+    },
+
+    /* ---------------- 問題タイプ別 ---------------- */
+
+    /**
+     * 問題タイプごとの記録置き場
+     *   single   → profile.kanji（キー: 漢字）
+     *   sentence → profile.records.sentence（キー: 問題ID）
+     *   life     → profile.records.life（キー: 問題ID）
+     */
+    storeFor(profile, ptype) {
+      if (!ptype || ptype === 'single') return profile.kanji;
+      if (!profile.records) profile.records = {};
+      if (!profile.records[ptype]) profile.records[ptype] = {};
+      return profile.records[ptype];
+    },
+
+    /** 文の中・生活漢字の苦手な問題（苦手な順） */
+    weakItems(profile, ptype, now) {
+      now = now || Date.now();
+      const store = Proficiency.storeFor(profile, ptype);
+      return Object.keys(store)
+        .filter((id) => KA.ReadingData.get(id) && Proficiency.isWeak(store[id], now))
+        .sort((a, b) => Proficiency.weakScore(store[b], now) - Proficiency.weakScore(store[a], now));
+    },
+
+    /** 問題データ一覧の習熟度の集計（文の中・生活漢字用） */
+    summarizeItems(profile, ptype, items, now) {
+      now = now || Date.now();
+      const store = Proficiency.storeFor(profile, ptype);
+      const counts = [0, 0, 0, 0, 0];
+      let sum = 0;
+      items.forEach((it) => {
+        const lv = Proficiency.level(store[it.id], now);
+        counts[lv]++;
+        sum += lv;
+      });
+      return { total: items.length, counts, mastered: counts[4], rate: items.length ? Math.round((sum / (items.length * 4)) * 100) : 0 };
+    },
+
+    /**
+     * 漢字（または語）について、問題タイプ別の習熟度をまとめる
+     * 文の中・生活漢字は「その漢字を含む語」の記録の平均（記録があるものだけ）
+     * @returns {{single, sentence, life, overall}} 各値は 0〜4 または null（未出題）
+     */
+    typeBreakdown(profile, kanjiOrWord, now) {
+      now = now || Date.now();
+      const out = { single: null, sentence: null, life: null, overall: null };
+      const single = profile.kanji[kanjiOrWord];
+      if (single) out.single = Proficiency.level(single, now);
+      ['sentence', 'life'].forEach((ptype) => {
+        const store = Proficiency.storeFor(profile, ptype);
+        const levels = KA.ReadingData.items(ptype)
+          .filter((it) => it.word.includes(kanjiOrWord) && store[it.id])
+          .map((it) => Proficiency.level(store[it.id], now));
+        if (levels.length) out[ptype] = Math.round(levels.reduce((a, b) => a + b, 0) / levels.length);
+      });
+      const vals = [out.single, out.sentence, out.life].filter((v) => v !== null);
+      if (vals.length) out.overall = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      return out;
     },
 
     recentAccuracy,

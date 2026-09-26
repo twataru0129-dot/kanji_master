@@ -40,6 +40,13 @@
       dayStreak: 0, // 連続学習日数
       bestDayStreak: 0,
       lastStudyDate: null, // 'YYYY-MM-DD'
+      // 問題タイプ別の累計（single=一文字 / sentence=文の中 / life=生活漢字）
+      typeStats: {
+        single: { q: 0, c: 0, sessions: 0, perfect: 0 },
+        sentence: { q: 0, c: 0, sessions: 0, perfect: 0 },
+        life: { q: 0, c: 0, sessions: 0, perfect: 0 },
+      },
+      lifeCategoryCorrect: {}, // 生活漢字のカテゴリー別の正解数 { station: 12, ... }
     };
   }
 
@@ -57,7 +64,8 @@
       showKanaPad: true,
       equippedTitle: null, // 装備中の称号（実績ID）
       stats: defaultStats(),
-      kanji: {}, // 漢字ごとの学習記録（proficiency.js 参照）
+      kanji: {}, // 一文字の読み: 漢字ごとの学習記録（proficiency.js 参照）
+      records: { sentence: {}, life: {} }, // 文の中・生活漢字: 問題IDごとの学習記録（形式は kanji と同じ）
       history: [], // 直近30回のクイズ記録
       daily: {}, // 日ごとの記録 { 'YYYY-MM-DD': { q, c, wrong: [] } }
       achievements: {}, // { [id]: { at } }
@@ -82,10 +90,26 @@
     });
     if (!U.isPlainObject(p.stats.perfect)) p.stats.perfect = ds.perfect;
     if (!U.isPlainObject(p.stats.inputCorrect)) p.stats.inputCorrect = ds.inputCorrect;
+    if (!U.isPlainObject(p.stats.typeStats)) p.stats.typeStats = ds.typeStats;
+    Object.keys(ds.typeStats).forEach((t) => {
+      if (!U.isPlainObject(p.stats.typeStats[t])) p.stats.typeStats[t] = ds.typeStats[t];
+      ['q', 'c', 'sessions', 'perfect'].forEach((k) => {
+        if (typeof p.stats.typeStats[t][k] !== 'number') p.stats.typeStats[t][k] = 0;
+      });
+    });
+    if (!U.isPlainObject(p.stats.lifeCategoryCorrect)) p.stats.lifeCategoryCorrect = {};
+    if (!U.isPlainObject(p.records)) p.records = {};
+    ['sentence', 'life'].forEach((t) => {
+      if (!U.isPlainObject(p.records[t])) p.records[t] = {};
+    });
     ['kanji', 'daily', 'achievements', 'medals'].forEach((k) => {
       if (!U.isPlainObject(p[k])) p[k] = {};
     });
     if (!Array.isArray(p.history)) p.history = [];
+    p.history = p.history.filter((h) => U.isPlainObject(h));
+    p.history.forEach((h) => {
+      if (!h.problemType) h.problemType = 'single';
+    });
     if (!U.isPlainObject(p.counters)) p.counters = base.counters;
     if (!Array.isArray(p.counters.zukanViewed)) p.counters.zukanViewed = [];
     if (!U.isPlainObject(p.counters.modesCleared)) p.counters.modesCleared = {};
@@ -174,7 +198,7 @@
       const p = Profiles.get(id);
       if (!p) return;
       const fresh = defaultProfile();
-      ['stats', 'kanji', 'history', 'daily', 'achievements', 'medals', 'counters'].forEach((k) => {
+      ['stats', 'kanji', 'records', 'history', 'daily', 'achievements', 'medals', 'counters'].forEach((k) => {
         p[k] = fresh[k];
       });
       p.equippedTitle = null;
