@@ -47,7 +47,7 @@
       id: 'sentence',
       label: '文の中の読み',
       available: true,
-      prompt: { kids: 'せんの ことばの よみは？', standard: '線のことばの読みを答えましょう' },
+      prompt: { kids: 'かんじの よみを いれよう！', standard: '（　）に漢字の読みを入れましょう' },
       build: buildWordQuestion,
       check: checkWordQuestion,
     },
@@ -87,16 +87,78 @@
 
   /* ---------- 文の中の読み・生活漢字 ---------- */
   function buildWordQuestion(item, ctx) {
+    if (item.ptype === 'sentence') return buildSentenceQuestion(item, ctx);
     const accepted = item.readings.map((r) => ({ reading: U.kataToHira(r), type: item.ptype }));
     const q = { type: item.ptype, kanji: item.id, word: item.word, entry: item, accepted };
     if (ctx && ctx.withChoices) Object.assign(q, buildWordChoices(item, accepted));
     return q;
   }
 
+  /**
+   * 文の中の読み（v1.3.0〜）: 漢字部分だけの読みを答える
+   *   q.blanks … 解答欄（1つ以上）。各欄の readings のどれかと一致すれば正解
+   *   4択 … 解答欄が1つならその欄の読み、複数なら語全体の読みを選ぶ（q.choiceKind: 'blank' | 'full'）
+   */
+  function buildSentenceQuestion(item, ctx) {
+    const blanks = item.blanks.map((b) => ({ text: b.text, readings: b.readings.map((r) => U.kataToHira(r)) }));
+    const choiceKind = blanks.length === 1 ? 'blank' : 'full';
+    const acceptedList = choiceKind === 'blank' ? blanks[0].readings : item.fullReadings.map((r) => U.kataToHira(r));
+    const accepted = acceptedList.map((r) => ({ reading: r, type: 'sentence' }));
+    const q = { type: 'sentence', kanji: item.id, word: item.word, entry: item, blanks, choiceKind, accepted };
+    if (ctx && ctx.withChoices) Object.assign(q, buildSentenceChoices(item, q));
+    return q;
+  }
+
   function checkWordQuestion(question, answer) {
+    if (question.type === 'sentence') return checkSentenceQuestion(question, answer);
     const norm = normalizeKanaAnswer(answer);
     const hit = question.accepted.find((r) => r.reading === norm);
     return { correct: !!hit, matched: hit || null, normalized: norm };
+  }
+
+  /**
+   * 文の中の読みの判定
+   * answer: 解答欄ごとの配列（入力式）または文字列（4択・解答欄1つ）
+   * @returns {{correct, matched, normalized, blanks: [{answer, correct, expected}]}}
+   */
+  function checkSentenceQuestion(q, answer) {
+    // 4択で語全体の読みを選んだ場合（解答欄が複数の問題）
+    if (!Array.isArray(answer) && q.blanks.length > 1) {
+      const norm = normalizeKanaAnswer(answer);
+      const hit = q.accepted.find((r) => r.reading === norm);
+      return {
+        correct: !!hit,
+        matched: hit || null,
+        normalized: norm,
+        blanks: q.blanks.map((b) => ({ answer: '', correct: !!hit, expected: b.readings[0] })),
+        whole: true,
+      };
+    }
+    const values = Array.isArray(answer) ? answer : [answer];
+    const blanks = q.blanks.map((b, i) => {
+      const norm = normalizeKanaAnswer(values[i] || '');
+      return { answer: norm, correct: b.readings.includes(norm), expected: b.readings[0] };
+    });
+    const correct = blanks.every((b) => b.correct);
+    return {
+      correct,
+      matched: correct ? { reading: blanks.map((b) => b.answer).join('・'), type: 'sentence' } : null,
+      normalized: blanks.map((b) => b.answer).join('・'),
+      blanks,
+    };
+  }
+
+  /** 文の中の読みの4択 */
+  function buildSentenceChoices(item, q) {
+    const acceptedSet = new Set(q.accepted.map((r) => r.reading));
+    const answer = q.accepted[0].reading;
+    const others = KA.ReadingData.items('sentence').filter((it) => it.id !== item.id);
+    // 解答欄1つ → ほかの問題の「解答欄1つ」の読み、複数 → ほかの問題の語全体の読み
+    const pool = q.choiceKind === 'blank' ? others.filter((it) => it.blanks.length === 1).map((it) => it.blanks[0].reading) : others.map((it) => it.reading);
+    const candidates = U.unique(U.shuffle(pool).map((r) => U.kataToHira(r)).filter((r) => !acceptedSet.has(r)));
+    candidates.sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length));
+    const distractors = U.shuffle(candidates.slice(0, 6)).slice(0, 3);
+    return { choices: U.shuffle([answer].concat(distractors)), choiceAnswer: answer };
   }
 
   /** 4択: 同じ種類の問題の読みから、文字数の近いものを選ぶ */
