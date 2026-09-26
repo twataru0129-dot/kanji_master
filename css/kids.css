@@ -1,0 +1,139 @@
+/*
+ * キッズ表示（body.mode-kids）
+ * 大きな文字・大きなボタン・明るくやわらかい見た目
+ */
+body.mode-kids {
+  --font-size: 19px;
+  --tap: 56px;
+  --radius: 24px;
+  background-color: #f2f8ff;
+  background-image: radial-gradient(circle at 5% 5%, #fff6c9 0, rgba(255, 246, 201, 0) 30%),
+    radial-gradient(circle at 95% 15%, var(--sakura-soft) 0, rgba(253, 232, 240, 0) 32%),
+    radial-gradient(circle at 50% 100%, #dff4e6 0, rgba(223, 244, 230, 0) 40%);
+}
+
+.mode-kids .screen-title {
+  font-size: 1.6rem;
+}
+
+.mode-kids .today-button {
+  padding: 26px 22px;
+  border-radius: 30px;
+}
+
+.mode-kids .today-title {
+  font-size: 2rem;
+}
+
+.mode-kids .today-icon {
+  font-size: 3.2rem;
+}
+
+.mode-kids .menu-tile {
+  min-height: 130px;
+  border-radius: 26px;
+  border-width: 2px;
+}
+
+.mode-kids .menu-icon {
+  font-size: 3rem;
+}
+
+.mode-kids .menu-label {
+  font-size: 1.15rem;
+}
+
+.mode-kids .menu-tile:nth-child(8n + 1) {
+  background: #fff3f6;
+}
+.mode-kids .menu-tile:nth-child(8n + 2) {
+  background: #fff8e6;
+}
+.mode-kids .menu-tile:nth-child(8n + 3) {
+  background: #eef9f0;
+}
+.mode-kids .menu-tile:nth-child(8n + 4) {
+  background: #eef5ff;
+}
+.mode-kids .menu-tile:nth-child(8n + 5) {
+  background: #f5f0ff;
+}
+.mode-kids .menu-tile:nth-child(8n + 6) {
+  background: #fffbe6;
+}
+
+.mode-kids .hero-avatar {
+  width: 88px;
+  height: 88px;
+  font-size: 3rem;
+}
+
+.mode-kids .hero-title {
+  font-size: 1.1rem;
+}
+
+.mode-kids .kanji-card {
+  width: min(70vw, 300px);
+  border-radius: 34px;
+}
+
+.mode-kids .kanji-big {
+  font-size: min(52vw, 220px);
+}
+
+.mode-kids .choice-button {
+  min-height: 84px;
+  font-size: 1.8rem;
+  border-radius: 22px;
+}
+
+.mode-kids .kana-key {
+  min-height: 52px;
+  font-size: 1.45rem;
+}
+
+.mode-kids .feedback-mark {
+  font-size: 3.4rem;
+}
+
+.mode-kids .feedback-text {
+  font-size: 1.9rem;
+}
+
+.mode-kids .zukan-grid {
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+}
+
+.mode-kids .zukan-kanji {
+  font-size: 2.5rem;
+}
+
+.mode-kids .mastery-grid.kids {
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+}
+
+.mode-kids .title-card.got {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.mode-kids .title-icon {
+  font-size: 3rem;
+}
+
+.mode-kids .stat-row.kids .stat-value {
+  font-size: 1.9rem;
+  color: var(--blue-dark);
+}
+
+@media (max-width: 420px) {
+  .mode-kids .kana-key {
+    min-height: 46px;
+    font-size: 1.2rem;
+  }
+  .mode-kids .today-title {
+    font-size: 1.6rem;
+  }
+  .mode-kids .menu-tile {
+    min-height: 112px;
+  }
+}

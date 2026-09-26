@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="子どもから高校生まで使える漢字学習アプリ。漢字図鑑・習熟度管理・称号やメダルで楽しく学べます。">
+  <meta name="theme-color" content="#2f7fd8">
+  <title>漢字マスター</title>
+
+  <!-- アイコン（他のアプリと競合しないよう kanji- で始まるファイル名） -->
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/kanji-favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/kanji-icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/kanji-apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- iPhone / iPad でホーム画面に追加したとき -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="漢字マスター">
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/kids.css">
+  <link rel="stylesheet" href="css/effects.css">
+</head>
+<body class="mode-kids">
+  <a class="skip-link" href="#app">本文へ</a>
+  <header id="app-header" class="app-header"></header>
+  <button id="version-badge" class="version-badge" type="button"></button>
+  <main id="app" class="screen" tabindex="-1"></main>
+  <div id="modal-root"></div>
+  <div id="celebration-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <noscript><p class="noscript">このアプリを使うには JavaScript を有効にしてください。</p></noscript>
+
+  <!-- 基本 -->
+  <script src="js/version.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/kanji-db.js"></script>
+
+  <!-- 漢字データ（学年を追加するときはここに追加） -->
+  <script src="data/kanji-grade1.js"></script>
+  <script src="data/kanji-grade2.js"></script>
+  <script src="data/kanji-grade3.js"></script>
+  <script src="data/kanji-grade4.js"></script>
+  <script src="data/kanji-grade5.js"></script>
+  <script src="data/kanji-grade6.js"></script>
+  <script src="data/sources.js"></script>
+
+  <!-- 学習ロジック -->
+  <script src="js/profiles.js"></script>
+  <script src="js/proficiency.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/romaji.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/medals.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/learning.js"></script>
+
+  <!-- 画面 -->
+  <script src="js/ui.js"></script>
+  <script src="js/kana-pad.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/screens/profiles.js"></script>
+  <script src="js/screens/home.js"></script>
+  <script src="js/screens/quiz.js"></script>
+  <script src="js/screens/zukan.js"></script>
+  <script src="js/screens/records.js"></script>
+  <script src="js/screens/titles.js"></script>
+  <script src="js/screens/settings.js"></script>
+  <script src="js/screens/about.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
