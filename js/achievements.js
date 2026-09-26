@@ -31,6 +31,8 @@
     { id: 'overcome', label: '苦手克服' },
     { id: 'reading', label: '読み' },
     { id: 'style', label: 'いろいろ' },
+    { id: 'sentence', label: '文の中の読み' },
+    { id: 'life', label: '生活漢字' },
     { id: 'legend', label: '伝説' },
     { id: 'hidden', label: '隠し称号' },
     { id: 'future', label: 'これから登場' },
@@ -61,21 +63,21 @@
     { id: 'start', cat: 'beginner', name: '漢字学習スタート', desc: 'プロフィールを作る', icon: '🌱', check: () => true },
     threshold('first_step', 'beginner', 'はじめの一歩', 'はじめて問題に答える', '👣', s('totalQuestions'), 1, '問'),
     threshold('first_correct', 'beginner', 'はじめての正解', 'はじめて正解する', '⭕', s('totalCorrect'), 1, '問'),
-    threshold('first_clear', 'beginner', '初クイズクリア', 'クイズを最後までやりきる', '🏁', s('totalSessions'), 1, '回'),
+    threshold('first_clear', 'beginner', '初クイズクリア', '問題を最後までやりきる', '🏁', s('totalSessions'), 1, '回'),
     threshold('today_first', 'beginner', '今日の挑戦者', '「今日の10問」をクリアする', '📅', s('todaySessions'), 1, '回'),
     threshold('review_first', 'beginner', '復習デビュー', '「おまかせ復習」をクリアする', '🔁', s('reviewSessions'), 1, '回'),
     { id: 'zukan_open', cat: 'beginner', name: '図鑑デビュー', desc: '漢字図鑑で漢字をしらべる', icon: '📖', check: (c) => c.zukanViewed >= 1 },
     { id: 'equip', cat: 'beginner', name: 'おしゃれさん', desc: '称号を装備する', icon: '🎀', check: (c) => !!c.flags.equipped },
     { id: 'backup', cat: 'beginner', name: 'そなえあれば', desc: '学習データを書き出す（バックアップ）', icon: '💾', check: (c) => !!c.flags.backup },
-    { id: 'first_perfect', cat: 'beginner', name: 'はじめての満点', desc: 'クイズで満点をとる', icon: '💮', check: (c) => (c.stats.perfect.total || 0) >= 1 },
+    { id: 'first_perfect', cat: 'beginner', name: 'はじめての満点', desc: '問題で満点をとる', icon: '💮', check: (c) => (c.stats.perfect.total || 0) >= 1 },
 
     /* ---------- 挑戦回数 ---------- */
-    threshold('sess_3', 'challenge', 'チャレンジャー', 'クイズを3回クリア', '🎯', s('totalSessions'), 3, '回'),
-    threshold('sess_10', 'challenge', '10回挑戦', 'クイズを10回クリア', '🥉', s('totalSessions'), 10, '回'),
-    threshold('sess_30', 'challenge', '30回挑戦', 'クイズを30回クリア', '🥈', s('totalSessions'), 30, '回'),
-    threshold('sess_50', 'challenge', 'がんばりの星', 'クイズを50回クリア', '🌟', s('totalSessions'), 50, '回'),
-    threshold('sess_100', 'challenge', '100回挑戦', 'クイズを100回クリア', '🥇', s('totalSessions'), 100, '回'),
-    threshold('sess_300', 'challenge', '不屈の挑戦者', 'クイズを300回クリア', '🏔️', s('totalSessions'), 300, '回'),
+    threshold('sess_3', 'challenge', 'チャレンジャー', '問題を3回クリア', '🎯', s('totalSessions'), 3, '回'),
+    threshold('sess_10', 'challenge', '10回挑戦', '問題を10回クリア', '🥉', s('totalSessions'), 10, '回'),
+    threshold('sess_30', 'challenge', '30回挑戦', '問題を30回クリア', '🥈', s('totalSessions'), 30, '回'),
+    threshold('sess_50', 'challenge', 'がんばりの星', '問題を50回クリア', '🌟', s('totalSessions'), 50, '回'),
+    threshold('sess_100', 'challenge', '100回挑戦', '問題を100回クリア', '🥇', s('totalSessions'), 100, '回'),
+    threshold('sess_300', 'challenge', '不屈の挑戦者', '問題を300回クリア', '🏔️', s('totalSessions'), 300, '回'),
     threshold('q_100', 'challenge', '100問突破', '合計100問に答える', '💯', s('totalQuestions'), 100, '問'),
     threshold('q_300', 'challenge', '300問突破', '合計300問に答える', '📈', s('totalQuestions'), 300, '問'),
     threshold('q_1000', 'challenge', '1000問突破', '合計1000問に答える', '🚀', s('totalQuestions'), 1000, '問'),
@@ -205,8 +207,8 @@
     threshold('in_hira', 'style', 'ひらがな名人', 'ひらがな入力で50問正解', 'あ', (c) => c.stats.inputCorrect.hiragana, 50, '問'),
     threshold('in_romaji', 'style', 'タイピスト', 'ローマ字入力で100問正解', '⌨️', (c) => c.stats.inputCorrect.romaji, 100, '問'),
     threshold('in_choice', 'style', 'えらび上手', '4択で100問正解', '👆', (c) => c.stats.inputCorrect.choice, 100, '問'),
-    { id: 'morning', cat: 'style', name: '朝の漢字マスター', desc: '朝5時〜8時にクイズをクリア', icon: '🌄', check: (c) => !!c.flags.morning },
-    { id: 'evening', cat: 'style', name: '夜の学習家', desc: '夜8時〜10時にクイズをクリア', icon: '🌙', check: (c) => !!c.flags.evening },
+    { id: 'morning', cat: 'style', name: '朝の漢字マスター', desc: '朝5時〜8時に問題をクリア', icon: '🌄', check: (c) => !!c.flags.morning },
+    { id: 'evening', cat: 'style', name: '夜の学習家', desc: '夜8時〜10時に問題をクリア', icon: '🌙', check: (c) => !!c.flags.evening },
     threshold('zukan_10', 'style', '図鑑めくり', '漢字図鑑で10字しらべる', '🔍', (c) => c.zukanViewed, 10, '字'),
     threshold('zukan_50', 'style', '図鑑マニア', '漢字図鑑で50字しらべる', '🔎', (c) => c.zukanViewed, 50, '字'),
     threshold('zukan_200', 'style', '漢字ものしり', '漢字図鑑で200字しらべる', '🧐', (c) => c.zukanViewed, 200, '字'),
@@ -246,15 +248,15 @@
     { id: 'h_lucky7', cat: 'hidden', hidden: true, name: 'ラッキーセブン', desc: 'マスターした漢字がちょうど77字になる', icon: '🍀', check: (c) => c.everMastered === 77 },
     { id: 'h_titles_20', cat: 'hidden', hidden: true, name: '称号コレクター', desc: '称号を20個あつめる', icon: '🗃️', check: (c) => c.achievementCount >= 20 },
     { id: 'h_titles_50', cat: 'hidden', hidden: true, name: '称号マニア', desc: '称号を50個あつめる', icon: '🏛️', check: (c) => c.achievementCount >= 50 },
-    { id: 'h_leap', cat: 'hidden', hidden: true, name: '大躍進', desc: '歴代最高の連続正解を、1回のクイズで10以上更新', icon: '🦘', check: (c) => !!c.flags.leap },
+    { id: 'h_leap', cat: 'hidden', hidden: true, name: '大躍進', desc: '歴代最高の連続正解を、1回の問題で10以上更新', icon: '🦘', check: (c) => !!c.flags.leap },
     { id: 'h_comeback', cat: 'hidden', hidden: true, name: '逆転の達人', desc: '最初の3問を間違えたあと、残り（7問以上）を全部正解', icon: '🔃', check: (c) => !!c.flags.comeback },
     { id: 'h_night', cat: 'hidden', hidden: true, name: '夜ふかし漢字', desc: '夜10時〜朝4時に学習する', icon: '🦉', check: (c) => !!c.flags.night },
     { id: 'h_newyear', cat: 'hidden', hidden: true, name: '書き初め', desc: '1月1日に学習する', icon: '🎍', check: (c) => !!c.flags.newyear },
     { id: 'h_kanjiday', cat: 'hidden', hidden: true, name: '漢字の日', desc: '12月12日（漢字の日）に学習する', icon: '🈴', check: (c) => !!c.flags.kanjiday },
-    { id: 'h_speed', cat: 'hidden', hidden: true, name: '電光石火', desc: '10問以上のクイズを1問平均6秒以内・全問正解', icon: '⚡', check: (c) => !!c.flags.speed },
+    { id: 'h_speed', cat: 'hidden', hidden: true, name: '電光石火', desc: '10問以上の問題を1問平均6秒以内・全問正解', icon: '⚡', check: (c) => !!c.flags.speed },
     { id: 'h_allmodes', cat: 'hidden', hidden: true, name: '全部のせ', desc: '10問・20問・30問・全問のすべてをクリア', icon: '🍱', check: (c) => ['10', '20', '30', 'all'].every((m) => c.modesCleared[m]) },
-    { id: 'h_busy', cat: 'hidden', hidden: true, name: 'がんばり屋', desc: '1日にクイズを5回クリア', icon: '🐝', check: (c) => (c.todayRecord.sessions || 0) >= 5 },
-    { id: 'h_never_give_up', cat: 'hidden', hidden: true, name: '七転び八起き', desc: '1回のクイズで8問以上間違えても最後までやりきる', icon: '🎎', check: (c) => !!c.flags.neverGiveUp },
+    { id: 'h_busy', cat: 'hidden', hidden: true, name: 'がんばり屋', desc: '1日に問題を5回クリア', icon: '🐝', check: (c) => (c.todayRecord.sessions || 0) >= 5 },
+    { id: 'h_never_give_up', cat: 'hidden', hidden: true, name: '七転び八起き', desc: '1回の問題で8問以上間違えても最後までやりきる', icon: '🎎', check: (c) => !!c.flags.neverGiveUp },
     { id: 'h_marathon', cat: 'hidden', hidden: true, name: 'マラソンランナー', desc: '1日に100問以上答える', icon: '🏃', check: (c) => (c.todayRecord.q || 0) >= 100 },
 
     /* ---------- これから登場（将来の機能） ---------- */
@@ -264,6 +266,99 @@
     { id: 'f_rare', cat: 'future', future: true, name: '難読漢字ハンター', desc: '難読漢字に挑戦する（近日登場）', icon: '🐉', check: () => false },
     { id: 'f_stroke', cat: 'future', future: true, name: '書き順名人', desc: '書き順を覚える（近日登場）', icon: '🖌️', check: () => false },
     { id: 'f_write', cat: 'future', future: true, name: '書き取り名人', desc: '書き取り問題で活躍する（近日登場）', icon: '📝', check: () => false }
+  );
+
+  /* ---------- v1.1.0: 文の中の読み・生活漢字 ---------- */
+  const ts = (type, key) => (c) => (c.stats.typeStats && c.stats.typeStats[type] && c.stats.typeStats[type][key]) || 0;
+  const lifeCat = (cat) => (c) => (c.stats.lifeCategoryCorrect && c.stats.lifeCategoryCorrect[cat]) || 0;
+  const LIFE_CAT_TITLES = [
+    ['school', '学校ことば名人', '🏫'],
+    ['home', 'くらし上手', '🏠'],
+    ['station', '電車マスター', '🚉'],
+    ['shopping', '買い物上手', '🛒'],
+    ['hospital', '病院ことば博士', '🏥'],
+    ['work', '職場ことばマスター', '🏢'],
+    ['public', 'まちの手続き名人', '🏛️'],
+    ['restaurant', 'お店ことば名人', '🍽️'],
+    ['safety', '安全第一！', '🚨'],
+    ['signs', '標識ハンター', '🪧'],
+  ];
+  const LIFE_CAT_TARGET = 20;
+
+  DEFS.push(
+    threshold('sen_first', 'sentence', '文の中への第一歩', '「文の中の読み」を初めてクリア', '📖', ts('sentence', 'sessions'), 1, '回'),
+    threshold('sen_c30', 'sentence', '文章読みデビュー', '文の中の読みで30問正解', '📘', ts('sentence', 'c'), 30, '問'),
+    threshold('sen_c100', 'sentence', '文章読みの達人', '文の中の読みで100問正解', '📚', ts('sentence', 'c'), 100, '問'),
+    threshold('sen_c300', 'sentence', '文章読みの名人', '文の中の読みで300問正解', '🏅', ts('sentence', 'c'), 300, '問'),
+    threshold('sen_perfect', 'sentence', '文の中で満点', '文の中の読みで満点をとる', '💮', ts('sentence', 'perfect'), 1, '回'),
+    {
+      id: 'sen_all',
+      cat: 'sentence',
+      name: '例文コンプリート',
+      desc: '文の中の読みの問題すべてに1回以上答える',
+      icon: '🗂️',
+      unit: '問',
+      check: (c) => c.itemsSeen('sentence') >= c.itemsTotal('sentence') && c.itemsTotal('sentence') > 0,
+      progress: (c) => [c.itemsSeen('sentence'), c.itemsTotal('sentence')],
+    },
+    threshold('life_first', 'life', '生活漢字デビュー', '「生活漢字」を初めてクリア', '🏙️', ts('life', 'sessions'), 1, '回'),
+    threshold('life_c50', 'life', 'まちの漢字ウォッチャー', '生活漢字で50問正解', '👀', ts('life', 'c'), 50, '問'),
+    threshold('life_c150', 'life', 'くらしの漢字名人', '生活漢字で150問正解', '🌆', ts('life', 'c'), 150, '問'),
+    threshold('life_perfect', 'life', '生活漢字で満点', '生活漢字で満点をとる', '💯', ts('life', 'perfect'), 1, '回')
+  );
+  LIFE_CAT_TITLES.forEach(([cat, name, icon]) => {
+    const label = () => (KA.ReadingData ? KA.ReadingData.category(cat).label : cat);
+    DEFS.push({
+      id: 'life_cat_' + cat,
+      cat: 'life',
+      name,
+      get desc() {
+        return `生活漢字の「${label()}」で${LIFE_CAT_TARGET}問正解`;
+      },
+      icon,
+      unit: '問',
+      check: (c) => lifeCat(cat)(c) >= LIFE_CAT_TARGET,
+      progress: (c) => [Math.min(lifeCat(cat)(c), LIFE_CAT_TARGET), LIFE_CAT_TARGET],
+    });
+  });
+  DEFS.push(
+    {
+      id: 'life_all_scenes',
+      cat: 'life',
+      name: '場面コンプリート',
+      desc: '生活漢字のすべての場面で1問以上正解',
+      icon: '🧭',
+      unit: '場面',
+      check: (c) => c.lifeCategoriesCleared() >= c.lifeCategoryTotal() && c.lifeCategoryTotal() > 0,
+      progress: (c) => [c.lifeCategoriesCleared(), c.lifeCategoryTotal()],
+    },
+    {
+      id: 'life_king',
+      cat: 'life',
+      name: 'くらしの漢字王',
+      desc: '生活漢字で300問正解＆すべての場面で10問以上正解',
+      icon: '👑',
+      check: (c) => ts('life', 'c')(c) >= 300 && LIFE_CAT_TITLES.every(([cat]) => lifeCat(cat)(c) >= 10),
+      progress: (c) => [Math.min(ts('life', 'c')(c), 300), 300],
+      unit: '問',
+    },
+    {
+      id: 'three_types',
+      cat: 'life',
+      name: '三つの読みマスター',
+      desc: '一文字・文の中・生活漢字のすべてをクリア',
+      icon: '🎌',
+      check: (c) => ['single', 'sentence', 'life'].every((t) => ts(t, 'sessions')(c) >= 1),
+    },
+    {
+      id: 'h_yomiwake',
+      cat: 'hidden',
+      hidden: true,
+      name: '読み分け名人',
+      desc: '「上る」「上げる」「上」の文をすべて正解する',
+      icon: '🔀',
+      check: (c) => ['sen_008', 'sen_009', 'sen_010'].every((id) => c.itemCorrect('sentence', id) >= 1),
+    }
   );
 
   const DEF_MAP = {};
@@ -304,6 +399,19 @@
       gradeTotal: (gid) => gradeStat(gid).total,
       gradeSeen: (gid) => gradeStat(gid).seen,
       gradeMastered: (gid) => gradeStat(gid).mastered,
+      // 文の中・生活漢字
+      itemsTotal: (ptype) => (KA.ReadingData ? KA.ReadingData.items(ptype).length : 0),
+      itemsSeen: (ptype) => {
+        const store = P.storeFor(profile, ptype);
+        return KA.ReadingData ? KA.ReadingData.items(ptype).filter((it) => store[it.id]).length : 0;
+      },
+      itemCorrect: (ptype, id) => {
+        const rec = P.storeFor(profile, ptype)[id];
+        return rec ? rec.c || 0 : 0;
+      },
+      lifeCategoryTotal: () => (KA.ReadingData ? KA.ReadingData.lifeCategories().length : 0),
+      lifeCategoriesCleared: () =>
+        KA.ReadingData ? KA.ReadingData.lifeCategories().filter((cat) => (profile.stats.lifeCategoryCorrect || {})[cat.id] > 0).length : 0,
     };
   }
 

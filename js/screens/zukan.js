@@ -68,6 +68,7 @@
           row(kids ? 'おくりがな' : '送り仮名', entry.okurigana.length ? entry.okurigana.join('・') : '―'),
           row(kids ? 'れいぶん' : '例文', entry.exampleSentences.length ? h('div', null, entry.exampleSentences.map((s) => h('div', { class: 'example' }, s))) : pending),
           row(kids ? 'かきじゅん' : '書き順', h('span', { class: 'muted' }, '近日登場（KanjiVG対応予定）')),
+          typeBreakdownRow(p, entry.kanji, kids),
           row(kids ? 'きろく' : '学習記録', history)
         ),
         h(
@@ -92,6 +93,91 @@
     },
   };
   KA.KanjiDetail = KanjiDetail;
+
+  /** 問題タイプ別の習熟度（一文字 / 文の中 / 生活漢字 / 総合） */
+  function typeBreakdownRow(p, kanji, kids) {
+    const b = P.typeBreakdown(p, kanji);
+    if (b.sentence === null && b.life === null) return null;
+    const cell = (label, v) =>
+      h('span', { class: 'type-level' }, h('span', { class: 'type-level-label' }, label), v === null ? h('span', { class: 'muted small' }, '―') : KA.UI.levelBadge(v, kids));
+    return h(
+      'div',
+      { class: 'detail-row' },
+      h('dt', null, kids ? 'もんだい べつ' : '問題タイプ別'),
+      h(
+        'dd',
+        { class: 'type-levels' },
+        cell(kids ? '一文字' : '一文字', b.single),
+        cell(kids ? '文の中' : '文の中', b.sentence),
+        cell(kids ? '生活' : '生活漢字', b.life),
+        cell(kids ? 'ぜんたい' : '総合', b.overall)
+      )
+    );
+  }
+
+  /* ============================================================
+   * 語の詳細（文の中の読み・生活漢字）
+   * ============================================================ */
+  const WordDetail = {
+    open(id) {
+      const item = KA.ReadingData.get(id);
+      if (!item) return;
+      const p = KA.Profiles.active();
+      const kids = p.displayMode === 'kids';
+      const rec = P.storeFor(p, item.ptype)[id];
+      const lv = P.level(rec);
+      const cat = item.category ? KA.ReadingData.category(item.category) : null;
+      const row = (label, value) => (value ? h('div', { class: 'detail-row' }, h('dt', null, label), h('dd', null, value)) : null);
+      const [before, target, after] = KA.ReadingData.splitSentence(item);
+      const content = h(
+        'div',
+        { class: 'kanji-detail' },
+        h(
+          'div',
+          { class: 'detail-head' },
+          h('div', { class: 'detail-word', lang: 'ja' }, h('ruby', null, item.word, h('rt', null, item.reading))),
+          h(
+            'div',
+            { class: 'detail-head-info' },
+            h('span', { class: 'chip' }, KA.ReadingData.typeLabel(item.ptype, kids)),
+            cat ? h('span', { class: 'chip' }, cat.icon + ' ' + cat.label) : null,
+            KA.UI.levelBadge(lv, kids),
+            P.isWeak(rec) ? h('span', { class: 'chip chip-weak' }, '⚠ 苦手') : null
+          )
+        ),
+        h(
+          'dl',
+          { class: 'detail-list' },
+          row(kids ? 'よみ' : '読み', item.readings.join('・')),
+          row(kids ? 'ぶん' : '文', item.sentence ? h('span', null, before, h('mark', { class: 'sentence-target small' }, target), after) : null),
+          row(kids ? 'いみ' : '意味', item.meaning || null),
+          row(
+            kids ? 'かんじ' : '使われている漢字',
+            h(
+              'div',
+              { class: 'compound-list' },
+              Array.from(item.word)
+                .filter((ch) => KA.KanjiDB.get(ch))
+                .map((ch) => h('button', { class: 'compound-chip', type: 'button', onclick: () => { modal.close(); KanjiDetail.open(ch); } }, ch))
+            )
+          ),
+          row(
+            kids ? 'きろく' : '学習記録',
+            rec
+              ? h('div', { class: 'muted small' }, `正解 ${rec.c || 0}回・不正解 ${rec.w || 0}回` + (rec.t ? `・最後に学習した日 ${U.formatDate(rec.t)}` : ''))
+              : h('span', { class: 'muted' }, kids ? 'まだ といていないよ' : 'まだ出題されていません')
+          )
+        ),
+        h(
+          'div',
+          { class: 'btn-row' },
+          h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { modal.close(); KA.QuizFlow.startFixed([item.id], 'retry'); } }, kids ? 'れんしゅうする' : 'この問題を練習する')
+        )
+      );
+      const modal = KA.UI.openModal(content, { className: 'modal-detail', label: item.word + ' の詳細' });
+    },
+  };
+  KA.WordDetail = WordDetail;
 
   /* ============================================================
    * 漢字図鑑

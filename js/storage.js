@@ -4,7 +4,8 @@
  * すべての学習データは localStorage の 1 つのキー「kanjiAppData」にまとめて保存します。
  *
  *   kanjiAppData = {
- *     dataVersion: 1,          // 保存形式のバージョン（アプリのバージョンとは別）
+ *     dataVersion: 2,          // 保存形式のバージョン（アプリのバージョンとは別）
+ *                              // 1: v1.0.0 / 2: v1.1.0（問題タイプ対応）
  *     appVersion: '1.0.0',     // 最後に保存したアプリのバージョン
  *     createdAt, updatedAt,
  *     settings: { activeProfileId, sound, ... },
@@ -26,7 +27,7 @@
   const STORAGE_KEY = 'kanjiAppData';
   const PREV_BACKUP_KEY = 'kanjiAppData_beforeImport';
   const CORRUPT_PREFIX = 'kanjiAppData_corrupt_';
-  const CURRENT_DATA_VERSION = 1;
+  const CURRENT_DATA_VERSION = 2;
   const EXPORT_FORMAT = 'kanji-master-backup';
 
   /** localStorage を使う保存先 */
@@ -83,6 +84,32 @@
       data.profiles = data.profiles || {};
       data.profileOrder = data.profileOrder || Object.keys(data.profiles);
       data.dataVersion = 1;
+    },
+    1: (data) => {
+      // v1.1.0: 問題タイプ（一文字・文の中・生活漢字）への対応
+      //  ・過去の履歴に problemType: 'single' を付ける（v1.0 の問題はすべて一文字の読み）
+      //  ・文の中・生活漢字の学習記録の置き場 records を追加
+      //  ・問題タイプ別の累計 typeStats を追加（これまでの累計は single に引き継ぐ）
+      Object.keys(data.profiles || {}).forEach((id) => {
+        const p = data.profiles[id];
+        if (!p || typeof p !== 'object') return;
+        if (Array.isArray(p.history)) {
+          p.history.forEach((h) => {
+            if (h && !h.problemType) h.problemType = 'single';
+          });
+        }
+        if (!p.records || typeof p.records !== 'object') p.records = { sentence: {}, life: {} };
+        const st = p.stats || (p.stats = {});
+        if (!st.typeStats) {
+          st.typeStats = {
+            single: { q: st.totalQuestions || 0, c: st.totalCorrect || 0, sessions: st.totalSessions || 0, perfect: (st.perfect && st.perfect.total) || 0 },
+            sentence: { q: 0, c: 0, sessions: 0, perfect: 0 },
+            life: { q: 0, c: 0, sessions: 0, perfect: 0 },
+          };
+        }
+        if (!st.lifeCategoryCorrect) st.lifeCategoryCorrect = {};
+      });
+      data.dataVersion = 2;
     },
   };
 
@@ -171,6 +198,14 @@
       }
       try {
         const parsed = JSON.parse(raw);
+        if (typeof parsed.dataVersion === 'number' && parsed.dataVersion < CURRENT_DATA_VERSION) {
+          // 形式を変換する前の元データを念のため残しておく
+          try {
+            this.adapter.write(STORAGE_KEY + '_before_v' + CURRENT_DATA_VERSION, raw);
+          } catch (e) {
+            /* 容量不足時は保険なしで続行 */
+          }
+        }
         this.data = sanitize(migrate(parsed));
         if (parsed.dataVersion !== CURRENT_DATA_VERSION) this.save();
       } catch (e) {

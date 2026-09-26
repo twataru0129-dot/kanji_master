@@ -137,3 +137,16 @@ body.mode-kids {
     min-height: 112px;
   }
 }
+
+/* v1.1.0 問題形式カード（キッズ表示は大きく） */
+.mode-kids .ptype-title {
+  font-size: 1.6rem;
+}
+
+.mode-kids .ptype-icon {
+  font-size: 3.4rem;
+}
+
+.mode-kids .ptype-desc {
+  font-size: 1rem;
+}

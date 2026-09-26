@@ -13,7 +13,7 @@
   const MAX_DAILY_DAYS = 60;
 
   const MODE_LABELS = {
-    normal: 'クイズ',
+    normal: '問題',
     today: '今日の10問',
     review: 'おまかせ復習',
     weak: '苦手漢字の復習',
@@ -25,10 +25,19 @@
     MODE_LABELS,
 
     /** 1 問答えるたびに呼ぶ: 累計・日ごとの記録を更新 */
-    recordAnswer(profile, { kanji, correct, readingType, inputMethod, now }) {
+    recordAnswer(profile, { kanji, correct, readingType, inputMethod, now, problemType, category }) {
       now = now || Date.now();
       const st = profile.stats;
       st.totalQuestions++;
+      // 問題タイプ別の累計（kanji には一文字なら漢字、それ以外は問題IDが入る）
+      const ts = st.typeStats && st.typeStats[problemType || 'single'];
+      if (ts) {
+        ts.q++;
+        if (correct) ts.c++;
+      }
+      if (correct && problemType === 'life' && category) {
+        st.lifeCategoryCorrect[category] = (st.lifeCategoryCorrect[category] || 0) + 1;
+      }
       if (correct) {
         st.totalCorrect++;
         st.currentStreak++;
@@ -99,6 +108,7 @@
         date: session.finishedAt || Date.now(),
         dateKey: U.dateKey(session.finishedAt || Date.now()),
         mode: session.mode,
+        problemType: session.problemType || 'single', // single / sentence / life / mixed
         levelId: session.levelId,
         size: session.size, // 10 / 20 / 30 / 'all'
         total,
@@ -107,12 +117,18 @@
         completed: !!session.completed,
         durationSec: Math.round(((session.finishedAt || Date.now()) - session.startedAt) / 1000),
         maxStreak: session.maxStreak || 0,
-        results: session.results.map((r) => [r.kanji, r.correct ? 1 : 0]),
+        // [キー, 正解=1, 問題タイプ（一文字は省略）]
+        results: session.results.map((r) => (r.ptype && r.ptype !== 'single' ? [r.kanji, r.correct ? 1 : 0, r.ptype] : [r.kanji, r.correct ? 1 : 0])),
       };
       profile.history.unshift(record);
       if (profile.history.length > MAX_HISTORY) profile.history.length = MAX_HISTORY;
       if (session.completed) {
         profile.stats.totalSessions++;
+        const ts = profile.stats.typeStats && profile.stats.typeStats[record.problemType];
+        if (ts) {
+          ts.sessions++;
+          if (correct === total) ts.perfect++;
+        }
         History.dayRecord(profile, record.dateKey).sessions++;
       }
       return record;
@@ -125,10 +141,19 @@
       return d && Array.isArray(d.wrong) ? d.wrong.slice() : [];
     },
 
-    sessionLabel(record) {
-      const mode = MODE_LABELS[record.mode] || 'クイズ';
-      const level = record.levelId === 'mixed' ? 'いろいろ' : KA.KanjiDB.levelLabel(record.levelId);
-      return { mode, level };
+    /**
+     * 表示用のラベル
+     * mode: 問題 / 今日の10問 など、type: 一文字の読み / 文の中の読み / 生活漢字、level: 学年など
+     */
+    sessionLabel(record, kids) {
+      const ptype = record.problemType || 'single';
+      const mode = MODE_LABELS[record.mode] || '問題';
+      const type = KA.ReadingData.typeLabel(ptype, kids);
+      let level = '';
+      if (ptype === 'single' && record.levelId && record.levelId !== 'mixed') level = KA.KanjiDB.levelLabel(record.levelId);
+      // 見出し: 一文字は「小学1年」、それ以外は問題タイプ名
+      const title = level || type || (kids ? 'いろいろ' : 'ミックス');
+      return { mode, level: title, type, title };
     },
   };
 

@@ -1666,3 +1666,388 @@
     font-size: 1.3rem;
   }
 }
+
+/* ================================================================
+ * v1.1.0 問題形式の選択・文の中の読み・生活漢字
+ * ================================================================ */
+.ptype-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 8px 0 16px;
+}
+
+.ptype-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 14px;
+  min-height: 190px;
+  border: 2px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: 0 5px 0 #dfe7f2, var(--shadow);
+  text-align: center;
+  transition: transform 0.08s;
+}
+
+.ptype-card:active:not(:disabled) {
+  transform: translateY(3px);
+}
+
+.ptype-single {
+  background: linear-gradient(180deg, #eef5ff, #fff 70%);
+  border-color: #b9d4f3;
+}
+
+.ptype-sentence {
+  background: linear-gradient(180deg, #f3f0ff, #fff 70%);
+  border-color: #cfc3f5;
+}
+
+.ptype-life {
+  background: linear-gradient(180deg, #fff1f6, #fff 70%);
+  border-color: #f4bfd3;
+}
+
+.ptype-step {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  min-height: 1em;
+}
+
+.ptype-icon {
+  font-size: 3rem;
+  line-height: 1.2;
+}
+
+.ptype-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.ptype-desc {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.ptype-meta {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.center-text {
+  text-align: center;
+}
+
+.size-grid.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.scene-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.scene-chip,
+.scene-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 文の中の読み */
+.sentence-card {
+  max-width: 620px;
+  margin: 0 auto 16px;
+  padding: 26px 20px;
+  border-radius: 24px;
+  background: #fff;
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.sentence-text {
+  margin: 0;
+  font-family: var(--font-kanji);
+  font-size: clamp(1.6rem, 6.5vw, 2.4rem);
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 読む部分: 太字 + 太い下線 + 背景色 + かっこ（色だけに頼らない） */
+.sentence-target {
+  font-weight: 900;
+  color: #1a1f2b;
+  background: #ffe98a;
+  padding: 0 0.12em;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
+  text-decoration-color: #c2410c;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.sentence-target::before {
+  content: '［';
+  font-weight: 400;
+  color: #c2410c;
+}
+
+.sentence-target::after {
+  content: '］';
+  font-weight: 400;
+  color: #c2410c;
+}
+
+.sentence-target.small {
+  font-size: inherit;
+}
+
+/* 生活漢字: 案内板風のカード（将来 display-* クラスで看板・値札風などを追加できる） */
+.life-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  margin: 0 auto 8px;
+  padding: 18px 16px 26px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #1f5fae, #184c8c);
+  border: 4px solid #0f3566;
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+}
+
+.life-card .scene-label {
+  align-self: flex-start;
+  background: #fff;
+  color: var(--ink);
+  border: 0;
+}
+
+.life-word {
+  font-size: clamp(2.6rem, 13vw, 4.2rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  padding: 6px 18px;
+  border-radius: 10px;
+  background: #fff;
+  color: #11294d;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.life-word.long {
+  font-size: clamp(2rem, 9vw, 3.2rem);
+  letter-spacing: 0.02em;
+}
+
+.life-image {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 10px;
+}
+
+.sentence-card.is-correct,
+.life-card.is-correct {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 6px var(--correct-soft), var(--shadow-lg);
+}
+
+.sentence-card.is-wrong,
+.life-card.is-wrong {
+  border-color: var(--wrong);
+  box-shadow: 0 0 0 6px var(--wrong-soft), var(--shadow-lg);
+  animation: shake 0.35s;
+}
+
+.screen-play.with-pad .sentence-card {
+  padding: 14px 14px;
+  margin-bottom: 10px;
+}
+
+.screen-play.with-pad .sentence-text {
+  font-size: clamp(1.3rem, 5.5vw, 1.9rem);
+  line-height: 1.6;
+}
+
+.screen-play.with-pad .life-card {
+  padding: 10px 12px 14px;
+  gap: 6px;
+}
+
+.screen-play.with-pad .life-word {
+  font-size: clamp(2rem, 10vw, 3rem);
+}
+
+.word-explain {
+  margin: 10px 0;
+}
+
+.word-answer {
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.word-answer rt {
+  font-size: 0.5em;
+  font-weight: 700;
+  color: var(--blue-dark);
+}
+
+.word-sentence,
+.word-meaning {
+  margin-top: 4px;
+}
+
+.result-item.is-word .result-kanji {
+  font-size: 1.2rem;
+  font-family: var(--font);
+  font-weight: 800;
+}
+
+.detail-word {
+  font-size: 2.4rem;
+  font-weight: 900;
+}
+
+.detail-word rt {
+  font-size: 0.45em;
+  color: var(--blue-dark);
+}
+
+.type-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.type-level {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.type-level-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.word-chip .kanji-chip-char {
+  font-size: 1.2rem;
+  font-family: var(--font);
+  font-weight: 800;
+}
+
+.type-row {
+  cursor: default;
+}
+
+.type-row:hover {
+  background: none;
+}
+
+.type-row-main {
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .ptype-grid {
+    grid-template-columns: 1fr;
+  }
+  .ptype-card {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    grid-template-rows: auto auto auto;
+    column-gap: 12px;
+    min-height: 0;
+    padding: 14px 16px;
+    text-align: left;
+    align-items: center;
+  }
+  .ptype-icon {
+    grid-row: 1 / span 4;
+    grid-column: 1;
+    font-size: 2.6rem;
+    text-align: center;
+  }
+  .ptype-step,
+  .ptype-title,
+  .ptype-desc,
+  .ptype-meta {
+    grid-column: 2;
+  }
+  .ptype-step:empty {
+    display: none;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  body .screen-play .sentence-card,
+  body .screen-play .life-card {
+    grid-column: 1 / span 1;
+    grid-row: 5;
+    margin: 0;
+    padding: 10px;
+  }
+  .screen-play:has(.sentence-card),
+  .screen-play:has(.life-card) {
+    grid-template-columns: minmax(200px, 38%) 1fr;
+  }
+  body .screen-play .sentence-text {
+    font-size: 1.3rem;
+  }
+  body .screen-play .life-word {
+    font-size: 2rem;
+  }
+}
+
+/* 一文字の読みのアイコン（「字」のタイル） */
+.kanji-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  font-family: var(--font-kanji);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--blue);
+  border-radius: 14px;
+  box-shadow: 0 3px 0 var(--blue-soft);
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .ptype-card .kanji-icon-tile {
+    font-size: 1.8rem;
+    justify-self: center;
+  }
+}

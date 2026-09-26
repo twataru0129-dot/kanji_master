@@ -33,8 +33,9 @@ js/kanji-db.js          学習レベル定義・漢字データ管理
 js/profiles.js          プロフィール
 js/proficiency.js       習熟度・苦手判定
 js/history.js           学習履歴（過去30回）・累計成績
-js/quiz.js              出題・答え合わせ（問題形式を追加できる設計）
-js/achievements.js      称号・実績（119個、うち隠し15・将来用6）
+js/quiz.js              出題・答え合わせ（一文字・文の中・生活漢字。問題形式を追加できる設計）
+js/reading-data.js      文の中の読み・生活漢字のデータ管理（問題タイプ・場面カテゴリー）
+js/achievements.js      称号・実績（143個、うち隠し16・将来用6）
 js/medals.js            メダル
 js/learning.js          回答・クイズ終了時の記録をまとめて行う
 js/sound.js             効果音
@@ -45,6 +46,8 @@ js/router.js            画面切り替え
 js/screens/*.js         各画面
 
 data/kanji-grade1〜6.js 小学1〜6年の漢字（1,026字）
+data/sentences.js       文の中の読み（140問）
+data/life-kanji.js      生活漢字（10場面・154語）
 data/sources.js         情報源・ライセンス表示
 assets/icons/           アプリアイコン（kanji- で始まる名前）
 tools/                  データ・アイコン生成スクリプト
@@ -65,6 +68,11 @@ tools/                  データ・アイコン生成スクリプト
 `data/kanji-junior1.js` などを作って `KanjiApp.KanjiDB.registerLevel('j1', [...])` を呼び、`index.html` と `sw.js` に追加します。
 クイズ・図鑑・習熟度マップに自動で表示されます（レベルIDは `js/kanji-db.js` の `LEVELS` を参照）。
 中学〜高校はアプリ独自の学習レベルなので、`officialGrade` は `null` にしてください。
+
+### 文の中の読み・生活漢字の問題を追加する
+`data/sentences.js` / `data/life-kanji.js` の末尾に1行追加するだけです（形式は各ファイル冒頭のコメント参照）。
+`id` は学習記録のキーなので、一度公開したら変更しないでください。
+生活漢字の場面（カテゴリー）は `registerLifeCategories` に追加できます。`meaning`（意味問題用）、`image` / `display`（看板風の表示用）も持たせられます。
 
 ### 問題形式を追加する（熟語・部首・送り仮名など）
 `js/quiz.js` の `QUESTION_TYPES` に `build` と `check` を実装し `available: true` にします。

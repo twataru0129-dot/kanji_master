@@ -18,19 +18,26 @@
     answer(profile, session, result) {
       const now = Date.now();
       const q = KA.Quiz.currentQuestion(session);
-      const info = KA.Proficiency.recordAnswer(profile, q.kanji, result.correct, now);
+      const ptype = q.ptype || 'single';
+      // 一文字は profile.kanji、文の中・生活漢字は profile.records[問題タイプ] に記録（q.kanji は漢字または問題ID）
+      const store = KA.Proficiency.storeFor(profile, ptype);
+      const info = KA.Proficiency.recordAnswerIn(store, q.kanji, result.correct, now);
       KA.History.recordAnswer(profile, {
         kanji: q.kanji,
         correct: result.correct,
-        readingType: result.matched ? result.matched.type : null,
+        readingType: ptype === 'single' && result.matched ? result.matched.type : null,
         inputMethod: result.inputMethod,
+        problemType: ptype,
+        category: q.entry && q.entry.category,
         now,
       });
       if (info.overcame) profile.stats.overcomeCount++;
       if (info.effortComeback) profile.counters.flags.effortComeback = true;
 
       session.results.push({
-        kanji: q.kanji,
+        kanji: q.kanji, // 一文字は漢字、それ以外は問題ID
+        ptype,
+        label: ptype === 'single' ? q.kanji : q.word,
         correct: result.correct,
         answer: result.answer || '',
         matched: result.matched ? result.matched.reading : null,
@@ -67,12 +74,13 @@
         // モード別
         if (session.mode === 'today') st.todaySessions++;
         if (session.mode === 'review' || session.mode === 'weak') st.reviewSessions++;
-        if (session.mode === 'normal') profile.counters.modesCleared[String(session.size)] = true;
+        if (session.mode === 'normal' && session.problemType === 'single') profile.counters.modesCleared[String(session.size)] = true;
+        if (session.mode === 'normal' && session.problemType !== 'single') profile.counters.modesCleared[session.problemType + '-' + session.size] = true;
 
         // 満点
         if (perfect) {
           st.perfect.total++;
-          if (session.mode === 'normal') {
+          if (session.mode === 'normal' && session.problemType === 'single') {
             if (session.size === 10) st.perfect.n10++;
             if (session.size === 20) st.perfect.n20++;
             if (session.size === 30) st.perfect.n30++;
