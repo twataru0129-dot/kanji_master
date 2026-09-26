@@ -33,7 +33,8 @@
     life: { id: 'life', label: '生活漢字', kids: '生活漢字', icon: '🏙️', desc: '生活の中でよく見ることばを読もう', kidsDesc: 'まちで みる ことば' },
   };
 
-  const categories = []; // { id, label, icon, order }
+  const categories = []; // { id, label, kidsLabel, icon, order }
+  const ALL_SCENES = { id: 'all', label: 'すべて', kidsLabel: 'ぜんぶ', icon: '🌈' };
   const sentences = [];
   const lifeItems = [];
   const byId = {};
@@ -108,7 +109,40 @@
     },
 
     category(id) {
+      if (id === ALL_SCENES.id) return ALL_SCENES;
       return categories.find((c) => c.id === id) || { id, label: id || 'その他', icon: '📍' };
+    },
+
+    /** 「すべて」を表す場面（カテゴリー指定なし） */
+    ALL_SCENES,
+
+    /**
+     * 場面の指定を正規化する
+     * 'all' / 未指定 → null（すべて）、'school' → ['school']、'school,work' → ['school', 'work']（将来の複数選択用）
+     * 存在しないカテゴリーは取り除く
+     */
+    parseCategories(value) {
+      if (!value || value === ALL_SCENES.id) return null;
+      const list = (Array.isArray(value) ? value : String(value).split(','))
+        .map((v) => String(v).trim())
+        .filter((v) => categories.some((c) => c.id === v));
+      return list.length ? Array.from(new Set(list)) : null;
+    },
+
+    /** 場面の指定 → URL などに載せる文字列（null → 'all'） */
+    categoriesKey(list) {
+      return list && list.length ? list.join(',') : ALL_SCENES.id;
+    },
+
+    /** 指定した場面の生活漢字（null ならすべて） */
+    lifeIn(list) {
+      return list && list.length ? lifeItems.filter((i) => list.includes(i.category)) : lifeItems;
+    },
+
+    /** 場面の表示名（例: 「🏫 学校」「🏫 学校・🏢 仕事・職場」「🌈 すべて」） */
+    categoriesLabel(list, kids, withIcon) {
+      const cats = list && list.length ? list.map((id) => ReadingData.category(id)) : [ALL_SCENES];
+      return cats.map((c) => (withIcon === false ? '' : c.icon + ' ') + (kids && c.kidsLabel ? c.kidsLabel : c.label)).join('・');
     },
 
     get(id) {

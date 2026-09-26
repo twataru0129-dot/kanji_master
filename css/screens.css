@@ -2051,3 +2051,153 @@
     justify-self: center;
   }
 }
+
+/* ================================================================
+ * v1.2.0 生活漢字: 場面の選択
+ * ================================================================ */
+.scene-title {
+  margin-top: 4px;
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.scene-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 116px;
+  padding: 14px 8px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: 0 4px 0 #dfe7f2, var(--shadow);
+  text-align: center;
+  transition: transform 0.08s, border-color 0.15s, background 0.15s;
+}
+
+.scene-button:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.scene-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #dfe7f2, var(--shadow);
+}
+
+.scene-button:disabled {
+  opacity: 0.5;
+}
+
+.scene-button.scene-all {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  gap: 12px;
+  min-height: 76px;
+  background: linear-gradient(90deg, #fff4f4, #fffbe8, #effaf1, #eef5ff, #f5f0ff);
+  border-color: #d9c6f5;
+}
+
+.scene-button.selected {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(47, 127, 216, 0.3), 0 4px 0 #dfe7f2;
+}
+
+.scene-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 900;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene-icon {
+  font-size: 2.4rem;
+  line-height: 1.2;
+}
+
+.scene-name {
+  font-weight: 900;
+  font-size: 1.02rem;
+  line-height: 1.35;
+}
+
+.scene-count {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.scene-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-color: #f4bfd3;
+  background: linear-gradient(180deg, #fff1f6, #fff 80%);
+}
+
+.scene-summary-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.scene-summary-name {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.scene-summary-sub {
+  font-weight: 800;
+  color: var(--blue-dark);
+}
+
+.size-grid.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.size-grid.one {
+  grid-template-columns: minmax(0, 320px);
+  justify-content: center;
+}
+
+.size-button.size-all {
+  border-color: #c4527f;
+  box-shadow: 0 4px 0 var(--sakura-soft);
+}
+
+.size-button.size-all .size-label {
+  color: #a33e6b;
+}
+
+@media (max-width: 420px) {
+  .scene-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .scene-button {
+    min-height: 104px;
+  }
+  .scene-name {
+    font-size: 0.95rem;
+  }
+}

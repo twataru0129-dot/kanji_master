@@ -144,7 +144,7 @@
       profile.history.map((r) => {
         const label = KA.History.sessionLabel(r, kids);
         const sub = [label.mode];
-        if (label.level !== label.type && label.type && label.mode !== label.type) sub.push(label.type);
+        if (label.type && !label.title.startsWith(label.type) && label.mode !== label.type) sub.push(label.type);
         return h(
           'li',
           { class: 'history-item' + (r.rate === 100 ? ' perfect' : '') },

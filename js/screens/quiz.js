@@ -3,7 +3,10 @@
  *
  *   #/quiz          問題形式の選択（一文字の読み / 文の中の読み / 生活漢字）
  *   #/quiz-single   一文字の読み: 学年 → 10/20/30/全問
- *   #/quiz-words    文の中の読み・生活漢字: 10/20/30（学年選択なし）
+ *   #/quiz-words?type=sentence              文の中の読み: 10/20/30（学年選択なし）
+ *   #/quiz-words?type=life                  生活漢字: 場面の選択（🌈すべて・🏫学校 …）
+ *   #/quiz-words?type=life&scene=school     生活漢字: 選んだ場面の問題数の選択（件数に応じて 10/20/30/全問）
+ *                                            scene は 'all' または カテゴリーID（将来は 'school,work' で複数も可）
  *   #/play          出題
  *   #/result        結果
  */
@@ -30,7 +33,8 @@
       const session = KA.Quiz.createSession(opts);
       session.prevBestStreak = p.stats.bestStreak;
       session.inputMethod = p.inputMethod; // 一時的な切り替え用（プロフィールの設定は変えない）
-      session.retryOpts = { mode: opts.mode, levelId: opts.levelId, size: opts.size, problemType: session.problemType, category: opts.category };
+      // 「もう一度」用に出題条件を保存（生活漢字の場面も含む）
+      session.retryOpts = { mode: opts.mode, levelId: opts.levelId, size: opts.size, problemType: session.problemType, categories: opts.categories || null };
       p.stats.startedSessions++;
       QuizFlow.session = session;
       QuizFlow.lastResult = null;
@@ -42,17 +46,22 @@
       QuizFlow.begin({ mode: 'normal', problemType: 'single', levelId, size, entries: KA.Quiz.Selection.normal(p, levelId, size) });
     },
 
-    /** 文の中の読み・生活漢字（全データから出題。opts.category は将来のカテゴリー指定用） */
+    /**
+     * 文の中の読み・生活漢字
+     * opts.categories: 生活漢字の場面IDの配列（null / 省略 = すべて）
+     */
     startWords(ptype, size, opts) {
       const p = KA.Profiles.active();
       opts = opts || {};
+      const categories = ptype === 'life' ? RD.parseCategories(opts.categories || opts.category) : null;
+      if (ptype === 'life') QuizFlow.lastLifeScene = RD.categoriesKey(categories);
       QuizFlow.begin({
         mode: 'normal',
         problemType: ptype,
         levelId: 'mixed',
         size,
-        category: opts.category,
-        entries: KA.Quiz.Selection.words(p, ptype, size, opts),
+        categories,
+        entries: KA.Quiz.Selection.words(p, ptype, size, { categories }),
         emptyMessage: '出題できる問題がありません',
       });
     },
@@ -86,7 +95,7 @@
 
     retry(opts) {
       if (!opts) return KA.Router.go('quiz');
-      if (opts.mode === 'normal' && opts.problemType && opts.problemType !== 'single') return QuizFlow.startWords(opts.problemType, opts.size, { category: opts.category });
+      if (opts.mode === 'normal' && opts.problemType && opts.problemType !== 'single') return QuizFlow.startWords(opts.problemType, opts.size, { categories: opts.categories });
       if (opts.mode === 'normal') return QuizFlow.startNormal(opts.levelId, opts.size);
       if (opts.mode === 'today') return QuizFlow.startToday();
       if (opts.mode === 'review') return QuizFlow.startReview(opts.size);
@@ -155,54 +164,139 @@
   });
 
   /* ============================================================
-   * 文の中の読み・生活漢字: 問題数の選択（学年選択なし）
+   * 文の中の読み・生活漢字（学年選択なし）
+   *   文の中の読み: 問題数の選択
+   *   生活漢字:     場面の選択 → 問題数の選択
    * ============================================================ */
+
+  /**
+   * 登録数に応じた問題数ボタン
+   *   30問以上: 10 / 20 / 30 / 全問   20〜29問: 10 / 20 / 全問
+   *   10〜19問: 10 / 全問              10問未満: 全問のみ
+   *   ちょうど10・20・30問のときは、同じ数のボタンを重ねず「全問」だけにする
+   */
+  function lifeSizeOptions(total, kids) {
+    const subs = { 10: kids ? 'かんたん' : '約3分', 20: kids ? 'ふつう' : '約6分', 30: kids ? 'がんばる' : '約9分' };
+    const list = [10, 20, 30].filter((n) => n < total).map((n) => ({ size: n, label: `${n}問`, sub: subs[n] }));
+    list.push({ size: 'all', label: `全${total}問`, sub: kids ? 'ぜんぶ' : 'すべて出題' });
+    return list;
+  }
+
+  function sizeButtons(options, onPick) {
+    return h(
+      'div',
+      { class: 'size-grid' + (options.length === 3 ? ' three' : options.length === 2 ? ' two' : options.length === 1 ? ' one' : '') },
+      options.map((o) =>
+        h(
+          'button',
+          { class: 'size-button' + (o.size === 'all' ? ' size-all' : ''), type: 'button', onclick: () => onPick(o.size) },
+          h('span', { class: 'size-label' }, o.label),
+          h('span', { class: 'size-sub' }, o.sub)
+        )
+      )
+    );
+  }
+
+  /** 生活漢字: 場面の選択 */
+  function renderSceneSelect(el, p, kids) {
+    const info = RD.PROBLEM_TYPES.life;
+    el.appendChild(KA.UI.screenHeader(info.icon + ' ' + (kids ? info.kids : info.label), { backTo: 'quiz' }));
+    el.appendChild(h('h2', { class: 'section-title scene-title' }, kids ? 'ばめんを えらぼう' : '場面をえらぼう'));
+    if (!kids) el.appendChild(h('p', { class: 'level-note' }, '生活の中でよく見ることばを、場面ごとに練習できます。「すべて」はすべての場面から出題します。'));
+    const last = QuizFlow.lastLifeScene;
+    const stats = p.stats.lifeCategoryCorrect || {};
+    const scenes = [RD.ALL_SCENES].concat(RD.lifeCategories());
+    el.appendChild(
+      h(
+        'div',
+        { class: 'scene-grid', role: 'list' },
+        scenes.map((c) => {
+          const count = c.id === RD.ALL_SCENES.id ? RD.life().length : RD.life(c.id).length;
+          const selected = last === c.id;
+          const correct = c.id === RD.ALL_SCENES.id ? (p.stats.typeStats && p.stats.typeStats.life ? p.stats.typeStats.life.c : 0) : stats[c.id] || 0;
+          return h(
+            'button',
+            {
+              class: 'scene-button' + (c.id === RD.ALL_SCENES.id ? ' scene-all' : '') + (selected ? ' selected' : ''),
+              type: 'button',
+              role: 'listitem',
+              disabled: count === 0,
+              'aria-label': `${c.label}（${count}問）${selected ? '・前回えらんだ場面' : ''}`,
+              onclick: () => KA.Router.go('quiz-words', { type: 'life', scene: c.id }),
+            },
+            selected ? h('span', { class: 'scene-check', 'aria-hidden': 'true' }, '✓') : null,
+            h('span', { class: 'scene-icon', 'aria-hidden': 'true' }, c.icon),
+            h('span', { class: 'scene-name' }, kids && c.kidsLabel ? c.kidsLabel : c.label),
+            h('span', { class: 'scene-count' }, `${count}問` + (!kids && correct ? `・正解 ${correct}` : ''))
+          );
+        })
+      )
+    );
+  }
+
+  /** 生活漢字: 選んだ場面の問題数の選択 */
+  function renderLifeSize(el, p, kids, sceneParam) {
+    const info = RD.PROBLEM_TYPES.life;
+    const categories = RD.parseCategories(sceneParam);
+    const items = RD.lifeIn(categories);
+    const backToScenes = () => KA.Router.go('quiz-words', { type: 'life' });
+    el.appendChild(KA.UI.screenHeader(info.icon + ' ' + (kids ? info.kids : info.label), { onBack: backToScenes }));
+
+    const sceneLabel = RD.categoriesLabel(categories, kids);
+    el.appendChild(
+      h(
+        'section',
+        { class: 'card scene-summary', 'aria-live': 'polite' },
+        h(
+          'div',
+          { class: 'scene-summary-main' },
+          h('div', { class: 'scene-summary-label' }, kids ? 'ばめん' : '出題場面'),
+          h('div', { class: 'scene-summary-name' }, sceneLabel),
+          h('div', { class: 'scene-summary-sub' }, kids ? `${items.length}もん あるよ` : `登録問題数：${items.length}問`),
+          kids ? null : h('div', { class: 'muted small' }, categories ? `${RD.categoriesLabel(categories, false, false)} の問題を出題します` : 'すべての場面から出題します')
+        ),
+        h('button', { class: 'btn btn-small btn-secondary', type: 'button', onclick: backToScenes }, kids ? 'ばめんを かえる' : '場面を変える')
+      )
+    );
+    if (!kids && items.length) {
+      const sum = KA.Proficiency.summarizeItems(p, 'life', items);
+      el.appendChild(h('p', { class: 'muted small' }, `この場面の習熟度 ${sum.rate}%・マスター ${sum.mastered}問`));
+    }
+    el.appendChild(h('h2', { class: 'section-title' }, kids ? 'なんもん やる？' : '問題数を選んでください'));
+    if (!items.length) {
+      el.appendChild(h('p', { class: 'muted' }, 'この場面の問題はまだありません。'));
+      return;
+    }
+    el.appendChild(sizeButtons(lifeSizeOptions(items.length, kids), (size) => QuizFlow.startWords('life', size, { categories })));
+  }
+
   KA.Screens.register('quiz-words', {
     title: '問題',
     render(el, params) {
       const p = KA.Profiles.active();
       const kids = p.displayMode === 'kids';
       const ptype = params.type === 'life' ? 'life' : 'sentence';
+      if (ptype === 'life') {
+        if (!params.scene) return renderSceneSelect(el, p, kids);
+        return renderLifeSize(el, p, kids, params.scene);
+      }
+
+      // 文の中の読み
       const info = RD.PROBLEM_TYPES[ptype];
       const items = RD.items(ptype);
       el.appendChild(KA.UI.screenHeader(info.icon + ' ' + (kids ? info.kids : info.label), { backTo: 'quiz' }));
       el.appendChild(h('p', { class: 'level-note' }, kids ? info.kidsDesc : info.desc));
-
-      if (ptype === 'life') {
-        // 場面（カテゴリー）の一覧。今回は全カテゴリーから出題（将来ここで選べるようにできる）
-        el.appendChild(
-          h(
-            'div',
-            { class: 'scene-list', 'aria-label': '出題される場面' },
-            RD.lifeCategories().map((c) => h('span', { class: 'scene-chip' }, h('span', { 'aria-hidden': 'true' }, c.icon), ' ' + c.label))
-          )
-        );
-      }
       if (!kids) {
         const sum = KA.Proficiency.summarizeItems(p, ptype, items);
         el.appendChild(h('p', { class: 'muted small' }, `登録されている問題 ${items.length}問から出題（習熟度 ${sum.rate}%・マスター ${sum.mastered}問）`));
       }
-
       el.appendChild(h('h2', { class: 'section-title' }, kids ? 'もんだいの かずを えらぼう' : '問題数を選ぶ'));
       const sizes = [
         { size: 10, label: '10問', sub: kids ? 'かんたん' : '約3分' },
         { size: 20, label: '20問', sub: kids ? 'ふつう' : '約6分' },
         { size: 30, label: '30問', sub: kids ? 'がんばる' : '約9分' },
       ];
-      el.appendChild(
-        h(
-          'div',
-          { class: 'size-grid three' },
-          sizes.map((s) =>
-            h(
-              'button',
-              { class: 'size-button', type: 'button', onclick: () => QuizFlow.startWords(ptype, s.size) },
-              h('span', { class: 'size-label' }, s.label),
-              h('span', { class: 'size-sub' }, s.sub)
-            )
-          )
-        )
-      );
+      el.appendChild(sizeButtons(sizes, (size) => QuizFlow.startWords(ptype, size)));
     },
   });
 
