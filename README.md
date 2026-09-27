@@ -22,6 +22,7 @@ style.css               基本スタイル（色・ボタン・カードなど�
 css/screens.css         各画面のスタイル・レスポンシブ
 css/kids.css            キッズ表示用
 css/effects.css         称号獲得などの演出
+css/print.css           プリントの A4 レイアウトと印刷用 CSS（@media print）
 app.js                  起動処理
 sw.js                   Service Worker（オフライン対応）
 manifest.webmanifest    PWA 設定
@@ -38,6 +39,7 @@ js/reading-data.js      文の中の読み・生活漢字のデータ管理（�
 js/achievements.js      称号・実績（143個、うち隠し16・将来用6）
 js/medals.js            メダル
 js/learning.js          回答・クイズ終了時の記録をまとめて行う
+js/print.js             プリントメーカーの問題づくり（対象漢字の選択・問題・答え）
 js/sound.js             効果音
 js/romaji.js            ローマ字→ひらがな変換
 js/ui.js                画面部品・モーダル・演出
@@ -85,6 +87,11 @@ segments の text をつなげると target と一致する必要があります
 
 ### 問題形式を追加する（熟語・部首・送り仮名など）
 `js/quiz.js` の `QUESTION_TYPES` に `build` と `check` を実装し `available: true` にします。
+
+### プリントの形式を追加する
+`js/print.js` の `FORMATS` に `build(entry)` を持つ形式を追加し、`js/screens/print.js` に表示（問題・答え）を追加します。
+答えが1つに決まらない問題は `build` で `null` を返してください（その漢字は自動で除かれます）。
+プリントを作っても学習記録は変わりません（PrintEngine は読み取りのみ）。
 
 ### 称号を追加する
 `js/achievements.js` の `DEFS` の末尾に追加します。`id` は保存データに残るため、公開後は変更しないでください。

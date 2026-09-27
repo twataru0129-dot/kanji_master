@@ -253,6 +253,15 @@
         )
       );
 
+      if (weak.length) {
+        el.appendChild(
+          h(
+            'div',
+            { class: 'btn-row' },
+            h('button', { class: 'btn btn-secondary', type: 'button', onclick: () => KA.PrintFlow.open('weak') }, kids ? '🖨️ にがての ぷりんとを つくる' : '🖨️ 苦手漢字のプリントを作る')
+          )
+        );
+      }
       const card = h(
         'section',
         { class: 'card' },

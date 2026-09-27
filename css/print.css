@@ -1,0 +1,623 @@
+/*
+ * プリントメーカー（A4 縦）
+ * ・画面ではA4の紙を縮小して表示し、印刷時は原寸で出力します。
+ * ・@page の余白 10mm の内側（190mm × 277mm）に収まるように、問題1つ分の高さを固定しています。
+ * ・問題の途中で改ページしないよう break-inside: avoid を指定しています。
+ */
+
+/* ---------------- メニュー・設定画面 ---------------- */
+.print-card {
+  position: relative;
+}
+
+.print-weak {
+  border-color: #f4bfd3;
+  background: linear-gradient(180deg, #fff1f6, #fff 70%);
+  box-shadow: 0 0 0 3px rgba(242, 141, 178, 0.35), 0 5px 0 #f4d3e0;
+}
+
+.print-grade {
+  background: linear-gradient(180deg, #eef5ff, #fff 70%);
+  border-color: #b9d4f3;
+}
+
+.print-custom {
+  background: linear-gradient(180deg, #f3f0ff, #fff 70%);
+  border-color: #cfc3f5;
+}
+
+.print-badge {
+  display: inline-block;
+  justify-self: start;
+  align-self: flex-start;
+  width: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #c4527f;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.print-badge.inline {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.print-today {
+  margin-top: 4px;
+}
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.format-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 96px;
+  padding: 12px 8px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 3px 0 #dfe7f2;
+  text-align: center;
+}
+
+.format-card.selected {
+  border: 3px solid var(--blue);
+  background: var(--blue-soft);
+}
+
+.format-icon {
+  font-size: 1.9rem;
+}
+
+.format-title {
+  font-weight: 900;
+}
+
+.format-desc {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.custom-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.custom-count {
+  font-weight: 900;
+  color: var(--blue-dark);
+  margin-right: auto;
+}
+
+.custom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 6px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.custom-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 60px;
+  padding: 4px 2px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+}
+
+.custom-cell.selected {
+  border: 3px solid var(--blue);
+  box-shadow: 0 0 0 2px rgba(47, 127, 216, 0.25);
+}
+
+.custom-check {
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  font-size: 0.85rem;
+  color: var(--blue-dark);
+}
+
+.custom-kanji {
+  font-family: var(--font-kanji);
+  font-size: 1.7rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.custom-mark {
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .format-grid {
+    grid-template-columns: 1fr;
+  }
+  .format-card {
+    flex-direction: row;
+    min-height: 60px;
+    gap: 10px;
+    text-align: left;
+    padding: 10px 14px;
+  }
+}
+
+/* ---------------- プリント確認画面 ---------------- */
+.print-toolbar .print-summary-main {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.print-actions {
+  justify-content: flex-start;
+}
+
+.print-sheets {
+  --sheet-scale: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+
+.page-holder {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: var(--shadow-lg);
+}
+
+.page-holder.no-print {
+  opacity: 0.55;
+}
+
+/* ---------------- A4 の紙 ---------------- */
+.print-page {
+  width: 210mm;
+  height: 297mm;
+  padding: 10mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  transform: scale(var(--sheet-scale));
+  transform-origin: top left;
+  overflow: hidden;
+  position: relative;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.no-print-label {
+  position: absolute;
+  top: 45%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 20pt;
+  font-weight: 900;
+  color: #c62f3b;
+  transform: rotate(-8deg);
+}
+
+.ps-header {
+  flex: none;
+  border-bottom: 0.6mm solid #333;
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+}
+
+.ps-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4mm;
+}
+
+.ps-brand {
+  font-size: 9pt;
+  color: #555;
+  white-space: nowrap;
+}
+
+.ps-title {
+  flex: 1;
+  font-size: 17pt;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.ps-page {
+  font-size: 9pt;
+  color: #555;
+  white-space: nowrap;
+}
+
+.ps-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm 7mm;
+  margin-top: 2mm;
+  font-size: 12pt;
+}
+
+.ps-field {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1mm;
+  white-space: nowrap;
+}
+
+.ps-name {
+  flex: 1;
+}
+
+.ps-line {
+  display: inline-block;
+  flex: 1;
+  min-width: 50mm;
+  border-bottom: 0.3mm solid #333;
+  height: 6mm;
+}
+
+.ps-line.short {
+  flex: none;
+  min-width: 11mm;
+  width: 11mm;
+}
+
+.ps-instruction {
+  margin: 2mm 0 0;
+  font-size: 11pt;
+  font-weight: 700;
+}
+
+.ps-footer {
+  flex: none;
+  margin-top: auto;
+  text-align: right;
+  font-size: 7pt;
+  color: #999;
+}
+
+.pq-list,
+.pa-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pq-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pq-item {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  border-bottom: 0.2mm dashed #bbb;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.pq-no {
+  flex: none;
+  width: 8mm;
+  height: 8mm;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.3mm solid #555;
+  border-radius: 50%;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.pq-body {
+  flex: 1;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.pq-word {
+  white-space: nowrap;
+}
+
+.pq-target {
+  white-space: nowrap;
+}
+
+.pq-kanji {
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-thickness: 0.4mm;
+  text-underline-offset: 1mm;
+}
+
+.pq-paren {
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.pq-blank {
+  display: inline-block;
+  vertical-align: bottom;
+  height: 1.2em;
+}
+
+/* 漢字を書く□ */
+.pw-box-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: bottom;
+  margin: 0 0.5mm;
+}
+
+.pw-reading {
+  font-size: 0.62em;
+  font-weight: 700;
+  line-height: 1.2;
+  min-height: 1.2em;
+  white-space: nowrap;
+}
+
+.pw-boxes {
+  display: inline-flex;
+}
+
+.pw-box {
+  display: inline-block;
+  border: 0.45mm solid #222;
+  background-image: linear-gradient(#ccc, #ccc), linear-gradient(#ccc, #ccc);
+  background-size: 100% 0.2mm, 0.2mm 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.pw-given {
+  font-weight: 700;
+}
+
+.pw-hint {
+  font-size: 0.8em;
+  margin-left: 1mm;
+}
+
+/* 漢字練習 */
+.pq-item.pp {
+  align-items: center;
+}
+
+.pp-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  min-width: 0;
+}
+
+.pp-info {
+  flex: none;
+  width: 26mm;
+  font-size: 8.5pt;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.pp-example {
+  color: #555;
+}
+
+.pp-cells {
+  display: flex;
+}
+
+.pp-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.35mm solid #333;
+  margin-left: -0.35mm;
+  font-family: 'Hiragino Kyokasho ProN', 'YuKyokasho', 'UD Digi Kyokasho N-R', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  background-image: linear-gradient(90deg, transparent 49.6%, #bbb 49.6%, #bbb 50.4%, transparent 50.4%),
+    linear-gradient(transparent 49.6%, #bbb 49.6%, #bbb 50.4%, transparent 50.4%);
+  line-height: 1;
+}
+
+.pp-cell.model {
+  color: #111;
+  background-color: #f6f6f6;
+}
+
+.pp-cell.trace {
+  color: #c8c8c8;
+}
+
+/* 解答用紙 */
+.pa-list {
+  columns: 2;
+  column-gap: 8mm;
+}
+
+.pa-item {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border-bottom: 0.2mm dashed #bbb;
+}
+
+.pa-text {
+  font-weight: 700;
+}
+
+/* ---------------- 標準 ---------------- */
+.size-standard .pq-body {
+  font-size: 16pt;
+  line-height: 1.75;
+}
+
+.size-standard.fmt-reading .pq-item {
+  height: 24mm;
+}
+
+.size-standard.fmt-writing .pq-item {
+  height: 30mm;
+}
+
+.size-standard .pw-box {
+  width: 14mm;
+  height: 14mm;
+}
+
+.size-standard.fmt-practice .pq-item {
+  height: 29mm;
+}
+
+.size-standard .pp-cell {
+  width: 16.5mm;
+  height: 16.5mm;
+  font-size: 13mm;
+}
+
+.size-standard .pa-item {
+  height: 14mm;
+  font-size: 13pt;
+}
+
+/* ---------------- 大きめ（問題少なめ・文字大きめ・書くところ広め） ---------------- */
+.size-large .ps-title {
+  font-size: 20pt;
+}
+
+.size-large .ps-fields,
+.size-large .ps-instruction {
+  font-size: 14pt;
+}
+
+.size-large .pq-body {
+  font-size: 22pt;
+  line-height: 1.7;
+}
+
+.size-large .pq-no {
+  width: 10mm;
+  height: 10mm;
+  font-size: 13pt;
+}
+
+.size-large.fmt-reading .pq-item {
+  height: 39mm;
+}
+
+.size-large.fmt-writing .pq-item {
+  height: 46mm;
+}
+
+.size-large .pw-box {
+  width: 20mm;
+  height: 20mm;
+}
+
+.size-large.fmt-practice .pq-item {
+  height: 37mm;
+}
+
+.size-large .pp-cell {
+  width: 20mm;
+  height: 20mm;
+  font-size: 16mm;
+}
+
+.size-large .pp-info {
+  font-size: 10pt;
+  width: 24mm;
+}
+
+.size-large .pa-item {
+  height: 23mm;
+  font-size: 18pt;
+}
+
+/* ---------------- 印刷 ---------------- */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    background-image: none !important;
+  }
+  body.print-mode > *:not(#app) {
+    display: none !important;
+  }
+  body.print-mode #app > *:not(.print-sheets) {
+    display: none !important;
+  }
+  body.print-mode .screen {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .print-sheets {
+    display: block;
+    gap: 0;
+    padding: 0;
+  }
+  .page-holder {
+    width: auto !important;
+    height: auto !important;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .page-holder.no-print,
+  .screen-only {
+    display: none !important;
+  }
+  /* 2枚目以降は必ず新しいページから */
+  .page-holder + .page-holder {
+    break-before: page;
+    page-break-before: always;
+  }
+  .print-page {
+    transform: none !important;
+    width: 190mm;
+    height: 276mm;
+    padding: 0;
+    margin: 0;
+  }
+}

@@ -1,5 +1,5 @@
 /*
- * 画面: 設定 / バックアップ・復元 / プリント（準備中）
+ * 画面: 設定 / バックアップ・復元
  */
 (function (KA) {
   'use strict';
@@ -225,27 +225,7 @@
     },
   });
 
-  /* ---------------- プリント（将来機能） ---------------- */
-  KA.Screens.register('print', {
-    title: 'プリント',
-    render(el) {
-      el.appendChild(KA.UI.screenHeader('プリントを作る'));
-      el.appendChild(
-        h(
-          'section',
-          { class: 'card coming-soon' },
-          h('div', { class: 'coming-icon', 'aria-hidden': 'true' }, '🖨️'),
-          h('h2', null, '近日登場！'),
-          h('p', null, '学年・漢字・問題数をえらんで、A4のプリント（問題用紙と解答用紙）を作れるようになる予定です。'),
-          h(
-            'ul',
-            { class: 'plain-list' },
-            ['漢字の読みを書く', '読みを漢字にする', 'なぞり書き', '漢字練習マス', '熟語', '送り仮名'].map((t) => h('li', null, '・' + t))
-          )
-        )
-      );
-    },
-  });
+  // プリントメーカーは js/screens/print.js（v1.4.0〜）
 
   KA.Backup = { download: downloadBackup };
 })(window.KanjiApp);
