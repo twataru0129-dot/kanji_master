@@ -362,6 +362,15 @@
         )
       );
     });
+    // タブが横にあふれるとき（中学の学年など）、選んでいるタブが見えるようにする
+    requestAnimationFrame(() => {
+      const active = wrap.querySelector('.level-tab.active');
+      if (!active || !wrap.isConnected || wrap.scrollWidth <= wrap.clientWidth) return;
+      const left = active.offsetLeft - wrap.offsetLeft;
+      if (left < wrap.scrollLeft || left + active.offsetWidth > wrap.scrollLeft + wrap.clientWidth) {
+        wrap.scrollLeft = Math.max(0, left - (wrap.clientWidth - active.offsetWidth) / 2);
+      }
+    });
     return wrap;
   }
 

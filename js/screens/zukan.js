@@ -44,7 +44,7 @@
           h(
             'div',
             { class: 'detail-head-info' },
-            h('span', { class: 'chip', style: { '--chip-color': level ? level.color : '#999' } }, entry.officialGrade ? `小学${entry.officialGrade}年` : entry.appLevel),
+            h('span', { class: 'chip', style: { '--chip-color': level ? level.color : '#999' } }, entry.officialGrade ? `小学${entry.officialGrade}年` : (level ? `${level.label}（目安）` : entry.appLevel)),
             KA.UI.levelBadge(lv, kids),
             P.isWeak(rec) ? h('span', { class: 'chip chip-weak' }, '⚠ 苦手') : null,
             entry.strokes ? h('span', { class: 'chip' }, `${entry.strokes}画`) : null

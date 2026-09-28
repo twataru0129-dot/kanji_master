@@ -1,6 +1,6 @@
 # 漢字マスター
 
-5歳の子どもから高校生まで使える漢字学習 Web アプリです。
+5歳の子どもから高校生まで使える漢字学習 Web アプリです（常用漢字2,136字に対応）。
 「漢字図鑑 × 習熟度管理 × ゲーム・実績システム」を中心にしています。
 HTML / CSS / JavaScript だけで動くので、ビルドもサーバーも不要です。GitHub Pages でそのまま公開できます。
 
@@ -36,7 +36,7 @@ js/proficiency.js       習熟度・苦手判定
 js/history.js           学習履歴（過去30回）・累計成績
 js/quiz.js              出題・答え合わせ（一文字・文の中・生活漢字。問題形式を追加できる設計）
 js/reading-data.js      文の中の読み・生活漢字のデータ管理（問題タイプ・場面カテゴリー）
-js/achievements.js      称号・実績（143個、うち隠し16・将来用6）
+js/achievements.js      称号・実績（152個、うち隠し16・将来用6）
 js/medals.js            メダル
 js/learning.js          回答・クイズ終了時の記録をまとめて行う
 js/print.js             プリントメーカーの問題づくり（対象漢字の選択・問題・答え）
@@ -48,6 +48,7 @@ js/router.js            画面切り替え
 js/screens/*.js         各画面
 
 data/kanji-grade1〜6.js 小学1〜6年の漢字（1,026字）
+data/kanji-junior1〜3.js 中学1〜3年の漢字（1,110字・370字ずつ。アプリ独自の目安）
 data/sentences.js       文の中の読み（148問。漢字部分だけを答える answerMode: whole / segments）
 data/life-kanji.js      生活漢字（10場面・154語）
 data/sources.js         情報源・ライセンス表示
@@ -66,8 +67,16 @@ tools/                  データ・アイコン生成スクリプト
 形式を変えるときは `js/storage.js` の `CURRENT_DATA_VERSION` を上げ、`MIGRATIONS` に変換関数を追加してください。
 新しい項目を足すだけなら、`js/profiles.js` の `defaultProfile()` / `defaultStats()` に追加すれば、既存プロフィールにも自動で補われます。
 
-### 中学・高校の漢字を追加する
-`data/kanji-junior1.js` などを作って `KanjiApp.KanjiDB.registerLevel('j1', [...])` を呼び、`index.html` と `sw.js` に追加します。
+### 中学校の漢字（v1.5.0〜）
+常用漢字のうち小学校で習わない1,110字を、中1〜中3に370字ずつ分けています（公式の学年配当ではなく、アプリ独自の目安）。
+使用頻度（重み0.55）・JLPT レベル（0.25）・画数（0.10）・2010年追加字（0.10）から難しさを計算し、やさしい順に並べています。
+作り直すときは `python3 tools/build_junior_data.py --kanji-data kanji.json --vocab 語彙.json`
+（`kanji.json` は [kanji-data](https://github.com/davidluzgouveia/kanji-data)〔MIT〕）。小学校のデータは変わりません。
+部首は常用漢字表（旧字体による分類）を元に、新字体と合わないものをスクリプト内で補正しています。
+さんずい・にんべんのように位置で名前が変わる部首は、1字ずつ確認していないため「みず・さんずい」のように両方の名前を表示します。
+
+### 高校の漢字を追加する
+`data/kanji-high1.js` などを作って `KanjiApp.KanjiDB.registerLevel('h1', [...])` を呼び、`index.html` と `sw.js` に追加します。
 クイズ・図鑑・習熟度マップに自動で表示されます（レベルIDは `js/kanji-db.js` の `LEVELS` を参照）。
 中学〜高校はアプリ独自の学習レベルなので、`officialGrade` は `null` にしてください。
 
@@ -107,5 +116,6 @@ segments の text をつなげると target と一致する必要があります
 
 - 学年区分: 文部科学省「学年別漢字配当表」（平成29年告示・2020年度施行）
 - 音訓・画数・部首: 文化庁「常用漢字表」（平成22年内閣告示）
-- 熟語: JMdict © EDRDG（CC BY-SA 4.0）— `data/kanji-grade*.js` の `compounds` は同ライセンスで提供します
+- 熟語: JMdict © EDRDG（CC BY-SA 4.0）— `data/kanji-grade*.js`・`data/kanji-junior*.js` の `compounds` は同ライセンスで提供します
+- 中学1〜3年の分け方に使った使用頻度・JLPT レベル: [kanji-data](https://github.com/davidluzgouveia/kanji-data)（MIT License）
 - 詳細はアプリの「このアプリについて」画面を参照してください

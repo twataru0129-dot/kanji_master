@@ -171,6 +171,46 @@
     unit: '字',
   });
 
+  /* ---------- 中学校の漢字（アプリ独自の学習レベル） ---------- */
+  const juniorIds = ['j1', 'j2', 'j3'];
+  const juniorNames = ['1', '2', '3'];
+  const juniorTitles = ['一年', '二年', '三年'];
+  juniorIds.forEach((gid, i) => {
+    DEFS.push({
+      id: 'seen_' + gid,
+      cat: 'grade',
+      name: `中学${juniorNames[i]}年 全字挑戦`,
+      desc: `中学${juniorNames[i]}年（アプリの目安）の漢字すべてに1回以上答える`,
+      icon: '🗺️',
+      check: (c) => c.gradeSeen(gid) >= c.gradeTotal(gid) && c.gradeTotal(gid) > 0,
+      progress: (c) => [c.gradeSeen(gid), c.gradeTotal(gid)],
+      unit: '字',
+    });
+    DEFS.push({
+      id: 'master_' + gid,
+      cat: 'grade',
+      name: `中学${juniorTitles[i]}マスター`,
+      desc: `中学${juniorNames[i]}年（アプリの目安）の漢字をすべてマスターする`,
+      icon: '🎓',
+      check: (c) => c.gradeMastered(gid) >= c.gradeTotal(gid) && c.gradeTotal(gid) > 0,
+      progress: (c) => [c.gradeMastered(gid), c.gradeTotal(gid)],
+      unit: '字',
+    });
+  });
+  const allLevels = (ids, fn) => (c) => ids.every((g) => fn(c, g) >= c.gradeTotal(g) && c.gradeTotal(g) > 0);
+  const sumLevels = (ids, fn) => (c) => [ids.reduce((a, g) => a + fn(c, g), 0), ids.reduce((a, g) => a + c.gradeTotal(g), 0)];
+  const seenOf = (c, g) => c.gradeSeen(g);
+  const masteredOf = (c, g) => c.gradeMastered(g);
+  const joyoIds = gradeIds.concat(juniorIds);
+  DEFS.push(
+    { id: 'seen_junior', cat: 'grade', name: '中学校漢字 全字挑戦', desc: '中学校の漢字1,110字すべてに答える', icon: '🧭',
+      check: allLevels(juniorIds, seenOf), progress: sumLevels(juniorIds, seenOf), unit: '字' },
+    { id: 'master_junior', cat: 'grade', name: '中学校漢字完全制覇', desc: '中学校の漢字1,110字をすべてマスターする', icon: '🏰',
+      check: allLevels(juniorIds, masteredOf), progress: sumLevels(juniorIds, masteredOf), unit: '字' },
+    { id: 'master_joyo', cat: 'grade', name: '常用漢字マスター', desc: '常用漢字2,136字（小学校＋中学校）をすべてマスターする', icon: '🗾',
+      check: allLevels(joyoIds, masteredOf), progress: sumLevels(joyoIds, masteredOf), unit: '字' }
+  );
+
   DEFS.push(
     /* ---------- マスター ---------- */
     threshold('mx_1', 'master', 'はじめてのマスター', '漢字を1字マスターする', '⭐', (c) => c.everMastered, 1, '字'),
