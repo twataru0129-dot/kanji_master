@@ -16,7 +16,7 @@
     { id: 'mastery', icon: '🗺️', label: '習熟度', kids: 'マップ', desc: '学年ごとの習熟度マップ' },
     { id: 'records', icon: '📊', label: '学習記録', kids: 'きろく', desc: '成績・過去30回の記録' },
     { id: 'titles', icon: '🏆', label: '称号・メダル', kids: 'しょうごう', desc: '集めた称号とメダル' },
-    { id: 'print', icon: '🖨️', label: 'プリントを作る', kids: 'プリント', desc: '近日登場', soon: true },
+    { id: 'print', icon: '🖨️', label: 'プリント', kids: 'ぷりんと', desc: '苦手な漢字の練習プリントを作る' },
     { id: 'settings', icon: '⚙️', label: '設定', kids: 'せってい', desc: 'プロフィール・バックアップ' },
   ];
 

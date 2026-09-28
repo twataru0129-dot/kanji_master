@@ -1045,6 +1045,24 @@
       }
 
       const wrong = s.results.filter((x) => !x.correct).map((x) => x.kanji);
+      // まちがえた漢字 → すぐにプリントへ（学習結果 → 紙で練習）
+      const wrongKanji = KA.PrintEngine ? KA.PrintEngine.kanjiFromResults(s.results) : [];
+      if (wrongKanji.length && KA.PrintFlow) {
+        el.appendChild(
+          h(
+            'button',
+            { class: 'today-button review print-from-result', type: 'button', onclick: () => KA.PrintFlow.fromKanji(wrongKanji) },
+            h('span', { class: 'today-icon', 'aria-hidden': 'true' }, '🖨️'),
+            h(
+              'span',
+              { class: 'today-text' },
+              h('span', { class: 'today-title' }, kids ? 'まちがえた かんじを ぷりんと' : 'まちがえた漢字をプリント'),
+              h('span', { class: 'today-sub' }, wrongKanji.slice(0, 10).join('・') + (wrongKanji.length > 10 ? ' …' : '') + (kids ? ` を かみで れんしゅう` : `（${wrongKanji.length}字）を紙で練習`))
+            ),
+            h('span', { class: 'today-go', 'aria-hidden': 'true' }, 'つくる ›')
+          )
+        );
+      }
       el.appendChild(
         h(
           'div',
