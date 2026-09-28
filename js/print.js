@@ -63,11 +63,13 @@
    */
   function usableCompounds(entry) {
     const all = basicCompounds(entry);
-    const grade = entry.officialGrade;
+    // 小学校は学年（1〜6）、中学校はアプリの目安（中1=7〜中3=9）で比べる
+    const grade = entry.officialGrade || entry.difficulty;
     if (!grade) return all;
     const easy = all.filter((c) => Array.from(c.word).every((ch) => {
       const e = DB.get(ch);
-      return e && e.officialGrade && e.officialGrade <= grade;
+      const g = e && (e.officialGrade || e.difficulty);
+      return g && g <= grade;
     }));
     return easy.length ? easy : all;
   }

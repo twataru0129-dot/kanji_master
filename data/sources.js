@@ -13,7 +13,7 @@ KanjiApp.SOURCES = [
   },
   {
     name: '文化庁「常用漢字表」（平成22年内閣告示第2号）',
-    usage: '音読み・訓読み・画数・部首の元データ。（ ）付きの読みは「特別な読み」として表示。',
+    usage: '音読み・訓読み・画数・部首の元データ。（ ）付きの読みは「特別な読み」として表示。小学校の漢字以外の1,110字を「中学校の漢字」として収録。',
     license: '公的資料（npm パッケージ joyo-kanji-counts〔MIT License〕経由で取得）',
     url: 'https://www.bunka.go.jp/kokugo_nihongo/sisaku/joho/joho/kijun/naikaku/kanji/',
     used: true,
@@ -21,8 +21,15 @@ KanjiApp.SOURCES = [
   {
     name: 'JMdict（Electronic Dictionary Research and Development Group）',
     usage: '熟語とその読み。常用語から学年に合うものを自動選定し、一部を手作業で補正。',
-    license: 'CC BY-SA 4.0 © EDRDG。熟語データ（data/kanji-grade*.js の compounds）は同ライセンスで提供します。',
+    license: 'CC BY-SA 4.0 © EDRDG。熟語データ（data/kanji-grade*.js・data/kanji-junior*.js の compounds）は同ライセンスで提供します。',
     url: 'https://www.edrdg.org/edrdg/licence.html',
+    used: true,
+  },
+  {
+    name: 'kanji-data（David Gouveia）',
+    usage: '中学1〜3年の分け方（アプリの目安）の計算に、漢字の使用頻度・JLPT レベルを利用。',
+    license: 'MIT License（元データは KANJIDIC2 © EDRDG〔CC BY-SA 4.0〕などに由来）',
+    url: 'https://github.com/davidluzgouveia/kanji-data',
     used: true,
   },
   {
@@ -43,6 +50,7 @@ KanjiApp.SOURCES = [
 
 KanjiApp.SOURCE_NOTES = [
   '中学1年〜高校3年のレベル分けは、このアプリ独自の学習レベルです（公式の学年配当ではありません）。',
+  '中学1〜3年は、常用漢字のうち小学校で習わない1,110字を、使用頻度・JLPT レベル・画数・2010年追加字かどうかから「やさしい順」に並べ、370字ずつに分けた目安です。',
   '部首は、学習用漢字辞典で一般的な分類を参考にしています。辞書によって異なる場合があります。',
   '小学1年の例文、「文の中の読み」の例文、「生活漢字」の語・例文・意味は、このアプリで作成したものです。',
 ];
