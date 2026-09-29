@@ -228,8 +228,8 @@
 .ps-header {
   flex: none;
   border-bottom: 0.6mm solid #333;
-  padding-bottom: 2mm;
-  margin-bottom: 3mm;
+  padding-bottom: 1.6mm;
+  margin-bottom: 2.5mm;
 }
 
 .ps-title-row {
@@ -261,7 +261,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 2mm 7mm;
-  margin-top: 2mm;
+  margin-top: 1.5mm;
   font-size: 12pt;
 }
 
@@ -291,7 +291,7 @@
 }
 
 .ps-instruction {
-  margin: 2mm 0 0;
+  margin: 1.5mm 0 0;
   font-size: 11pt;
   font-weight: 700;
 }
@@ -352,6 +352,10 @@
 }
 
 .pq-target {
+  white-space: nowrap;
+}
+
+.pq-nowrap {
   white-space: nowrap;
 }
 
@@ -464,8 +468,7 @@
 
 /* 解答用紙 */
 .pa-list {
-  columns: 2;
-  column-gap: 8mm;
+  flex: 1;
 }
 
 .pa-item {
@@ -481,17 +484,59 @@
   font-weight: 700;
 }
 
+/* ---------------- 列レイアウト（標準は2列・大きめは1列） ----------------
+ * 2列: grid の縦方向の流し込み。左列を上から埋めてから右列へ（1〜5 が左、6〜10 が右）
+ * --rows（1列あたりの行数）は JS が問題数から設定する。
+ * 行の高さは「ページの問題欄の高さ ÷ 行数」を、形式ごとの最小〜最大の範囲におさめる
+ * （問題が少ないページは少しゆったり、多いページでも窮屈にしない）
+ */
+.cols-2 {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: repeat(var(--rows, 5), var(--row-h, 24mm));
+  column-gap: 9mm;
+  align-content: start;
+}
+
+.cols-2 > li {
+  height: auto !important;
+  min-width: 0;
+}
+
+/* 列の間に薄い区切り線（印刷しても目立ちすぎない） */
+.cols-2 {
+  background-image: linear-gradient(#ddd, #ddd);
+  background-size: 0.2mm calc(var(--rows, 5) * var(--row-h, 24mm));
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
 /* ---------------- 標準 ---------------- */
 .size-standard .pq-body {
   font-size: 16pt;
   line-height: 1.75;
 }
 
-.size-standard.fmt-reading .pq-item {
+/* 標準の2列では1問の幅が約9cmになるので、文字を少しだけ小さくする */
+.size-standard .cols-2 .pq-body {
+  font-size: 15pt;
+  line-height: 1.6;
+}
+
+.size-standard.fmt-reading .pq-list {
+  --row-h: min(34mm, max(27mm, calc(226mm / var(--rows, 5))));
+}
+
+.size-standard.fmt-writing .pq-list {
+  --row-h: min(40mm, max(30mm, calc(220mm / var(--rows, 5))));
+}
+
+.size-standard.fmt-reading .pq-list.cols-1 .pq-item {
   height: 24mm;
 }
 
-.size-standard.fmt-writing .pq-item {
+.size-standard.fmt-writing .pq-list.cols-1 .pq-item {
   height: 30mm;
 }
 
@@ -513,6 +558,15 @@
 .size-standard .pa-item {
   height: 14mm;
   font-size: 13pt;
+}
+
+.size-standard .pa-list.cols-2 {
+  --row-h: min(18mm, max(14mm, calc(240mm / var(--rows, 5))));
+}
+
+.pa-item .pa-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ---------------- 大きめ（問題少なめ・文字大きめ・書くところ広め） ---------------- */

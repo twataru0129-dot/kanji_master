@@ -22,7 +22,10 @@
         const v = attrs[key];
         if (v === null || v === undefined || v === false) return;
         if (key === 'class') el.className = v;
-        else if (key === 'style' && typeof v === 'object') Object.assign(el.style, v);
+        else if (key === 'style' && typeof v === 'object') {
+          // CSS 変数（--xxx）は setProperty でないと反映されない
+          Object.keys(v).forEach((k) => (k.startsWith('--') ? el.style.setProperty(k, v[k]) : (el.style[k] = v[k])));
+        }
         else if (key.startsWith('on') && typeof v === 'function') el.addEventListener(key.slice(2), v);
         else if (key === 'dataset') Object.assign(el.dataset, v);
         else if (v === true) el.setAttribute(key, '');

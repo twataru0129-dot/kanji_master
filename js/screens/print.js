@@ -440,13 +440,32 @@
   /* ============================================================
    * プリントの組み立て（A4）
    * ============================================================ */
+  /**
+   * レイアウト方針（A4縦）
+   *   標準   … A4 の横幅を生かして 2列（左列 1〜5、右列 6〜10 のように縦に読む順）
+   *   大きめ … 見やすさ・書きやすさを優先して 1列
+   *   漢字練習は1問のスペースが大きいので、どちらも1列
+   * perPage: 1ページに入れる最大の問題数。実際は全ページで問題数がそろうように均等に分ける
+   * （例: 標準の読み 20問 → 10問 × 2ページ）
+   */
   const LAYOUT = {
-    // 1ページに入れる問題数（大きめ / 標準）
-    reading: { large: 6, standard: 10 },
-    writing: { large: 5, standard: 8 },
-    practice: { large: 6, standard: 8 },
-    answers: { large: 16, standard: 30 },
+    standard: {
+      reading: { columns: 2, perPage: 16 },
+      writing: { columns: 2, perPage: 14 },
+      practice: { columns: 1, perPage: 8 },
+      answers: { columns: 2, perPage: 30 },
+    },
+    large: {
+      reading: { columns: 1, perPage: 6 },
+      writing: { columns: 1, perPage: 5 },
+      practice: { columns: 1, perPage: 6 },
+      answers: { columns: 1, perPage: 10 },
+    },
   };
+
+  function layoutFor(size, kind) {
+    return (LAYOUT[size] || LAYOUT.standard)[kind];
+  }
 
   function sheetTitle(res, kids) {
     const st = res.state;
@@ -491,16 +510,35 @@
     );
   }
 
+  /**
+   * 文の後ろの部分。末尾の「。」「、」だけが次の行に送られないよう、直前の2文字とひとかたまりにする
+   * （2列で1行が短くなったときに起きやすい）
+   */
+  function sentenceTail(text) {
+    const m = /^([\s\S]*?)(.{0,2}[。、！？」]+)$/.exec(text || '');
+    if (!m || !m[2]) return text;
+    return [m[1], h('span', { class: 'pq-nowrap' }, m[2])];
+  }
+
+  /** 語（解答欄つき）＋直後の句読点をひとかたまりにし、残りを後ろにつなげる */
+  function wordAndTail(wordEl, after) {
+    const m = /^[。、！？」]+/.exec(after || '');
+    const lead = m ? m[0] : '';
+    return [h('span', { class: 'pq-nowrap' }, wordEl, lead), sentenceTail((after || '').slice(lead.length))];
+  }
+
   /** 読みを書く問題 */
-  function readingQuestion(q) {
-    const blank = (ans) => h('span', { class: 'pq-paren' }, '（', h('span', { class: 'pq-blank', style: { width: Math.min(9, Math.max(4, ans.length * 1.2 + 1.6)) + 'em' } }), '）');
+  function readingQuestion(q, columns) {
+    // 解答欄の長さ: 読みの文字数に合わせる（2列のときは少しだけ詰めるが、1文字あたり1em以上は確保）
+    const blankWidth = (ans) => (columns === 2 ? Math.min(8, Math.max(3.6, ans.length * 1.05 + 1.3)) : Math.min(9, Math.max(4, ans.length * 1.2 + 1.6)));
+    const blank = (ans) => h('span', { class: 'pq-paren' }, '（', h('span', { class: 'pq-blank', style: { width: blankWidth(ans) + 'em' } }), '）');
     if (q.kind === 'sentence') {
       const [before, , after] = KA.ReadingData.splitSentence(q.item);
       const word = q.item.segments.map((seg, i) => {
         if (i !== q.segIndex) return h('span', null, seg.text);
         return h('span', { class: 'pq-target' }, h('b', { class: 'pq-kanji' }, seg.text), blank(q.answer));
       });
-      return h('div', { class: 'pq-body' }, before, h('span', { class: 'pq-word' }, word), after);
+      return h('div', { class: 'pq-body' }, before, wordAndTail(h('span', { class: 'pq-word' }, word), after));
     }
     if (q.kind === 'okuri') return h('div', { class: 'pq-body' }, h('span', { class: 'pq-target' }, h('b', { class: 'pq-kanji' }, q.kanji), blank(q.answer)), q.tail);
     if (q.kind === 'compound') {
@@ -524,7 +562,7 @@
     if (q.kind === 'sentence') {
       const [before, , after] = KA.ReadingData.splitSentence(q.item);
       const word = q.item.segments.map((seg, i) => (i === q.segIndex ? writeBox(q.reading, 1) : h('span', null, seg.text)));
-      return h('div', { class: 'pq-body pw' }, before, h('span', { class: 'pq-word' }, word), after);
+      return h('div', { class: 'pq-body pw' }, before, wordAndTail(h('span', { class: 'pq-word' }, word), after));
     }
     if (q.kind === 'compound') {
       return h(
@@ -567,10 +605,26 @@
     return `${q.kanji}（${q.kanji}${q.tail || ''}）`;
   }
 
-  function chunk(list, n) {
+  /**
+   * ページに分ける。最大 perPage 問で、各ページの問題数ができるだけそろうようにする
+   * （20問・最大16問 → 10問 + 10問。16問 + 4問 のような偏りを作らない）
+   */
+  function paginate(list, perPage) {
+    if (!list.length) return [];
+    const pageCount = Math.ceil(list.length / perPage);
+    const size = Math.ceil(list.length / pageCount);
     const out = [];
-    for (let i = 0; i < list.length; i += n) out.push(list.slice(i, i + n));
+    for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
     return out;
+  }
+
+  /**
+   * 問題・答えを並べるリスト（1列 / 2列）
+   * 2列は CSS grid の縦方向の流し込み（grid-auto-flow: column）で、左列を上から埋めてから右列へ進む
+   */
+  function columnList(tag, className, columns, count) {
+    const rows = Math.max(1, Math.ceil(count / columns));
+    return h(tag, { class: `${className} cols-${columns}`, style: { '--rows': String(rows) } });
   }
 
   /** プリント（問題用紙＋解答用紙）のページを作る */
@@ -578,18 +632,20 @@
     const st = res.state;
     const size = st.size;
     const pages = [];
-    const qPages = chunk(res.questions, LAYOUT[st.format][size]);
+    const qLayout = layoutFor(size, st.format);
+    const aLayout = layoutFor(size, 'answers');
+    const qPages = paginate(res.questions, qLayout.perPage);
     const noAnswers = PE.FORMATS[st.format].noAnswers;
-    const aPages = noAnswers ? [] : chunk(res.questions, LAYOUT.answers[size]);
+    const aPages = noAnswers ? [] : paginate(res.questions, aLayout.perPage);
     const total = qPages.length;
     let no = 0;
     qPages.forEach((qs, pi) => {
-      const page = h('section', { class: `print-page size-${size} fmt-${st.format}` }, sheetHeader(res, kids, pi + 1, total, false));
-      const list = h('ol', { class: 'pq-list', start: String(no + 1) });
+      const page = h('section', { class: `print-page size-${size} fmt-${st.format} layout-cols-${qLayout.columns}` }, sheetHeader(res, kids, pi + 1, total, false));
+      const list = columnList('ol', 'pq-list', qLayout.columns, qs.length);
       qs.forEach((q) => {
         no++;
         if (st.format === 'practice') list.appendChild(h('li', { class: 'pq-item pp' }, h('span', { class: 'pq-no' }, no), practiceRow(q, size)));
-        else list.appendChild(h('li', { class: 'pq-item' }, h('span', { class: 'pq-no' }, no), st.format === 'reading' ? readingQuestion(q) : writingQuestion(q)));
+        else list.appendChild(h('li', { class: 'pq-item' }, h('span', { class: 'pq-no' }, no), st.format === 'reading' ? readingQuestion(q, qLayout.columns) : writingQuestion(q)));
       });
       page.appendChild(list);
       page.appendChild(h('footer', { class: 'ps-footer' }, `漢字マスター v${KA.APP_VERSION}`));
@@ -597,9 +653,9 @@
     });
     let ano = 0;
     aPages.forEach((qs, pi) => {
-      const page = h('section', { class: `print-page answer-page size-${size}` + (withAnswers ? '' : ' no-print') }, sheetHeader(res, kids, pi + 1, aPages.length, true));
+      const page = h('section', { class: `print-page answer-page size-${size} layout-cols-${aLayout.columns}` + (withAnswers ? '' : ' no-print') }, sheetHeader(res, kids, pi + 1, aPages.length, true));
       if (!withAnswers) page.appendChild(h('div', { class: 'no-print-label screen-only' }, '答えは印刷しません'));
-      const list = h('ol', { class: 'pa-list' });
+      const list = columnList('ol', 'pa-list', aLayout.columns, qs.length);
       qs.forEach((q) => {
         ano++;
         list.appendChild(h('li', { class: 'pa-item' }, h('span', { class: 'pq-no' }, ano), h('span', { class: 'pa-text' }, answerText(q))));
