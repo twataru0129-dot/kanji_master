@@ -7,6 +7,7 @@
  *   #/quiz-words?type=life                  生活漢字: 場面の選択（🌈すべて・🏫学校 …）
  *   #/quiz-words?type=life&scene=school     生活漢字: 選んだ場面の問題数の選択（件数に応じて 10/20/30/全問）
  *                                            scene は 'all' または カテゴリーID（将来は 'school,work' で複数も可）
+ *   #/sakura        サクラモード（js/screens/sakura.js。生活漢字の場面選択の「すべて」の下から入る）
  *   #/play          出題
  *   #/result        結果
  */
@@ -66,6 +67,19 @@
       });
     },
 
+    /** サクラモード（ジャンル・難易度の選択なし。問題数だけ） */
+    startSakura(size) {
+      const p = KA.Profiles.active();
+      QuizFlow.begin({
+        mode: 'normal',
+        problemType: 'sakura',
+        levelId: 'mixed',
+        size,
+        entries: KA.Quiz.Selection.sakura(p, size),
+        emptyMessage: '出題できる問題がありません',
+      });
+    },
+
     startToday() {
       const p = KA.Profiles.active();
       QuizFlow.begin({ mode: 'today', levelId: p.level, size: 10, entries: KA.Quiz.Selection.today(p, 10) });
@@ -95,6 +109,7 @@
 
     retry(opts) {
       if (!opts) return KA.Router.go('quiz');
+      if (opts.mode === 'normal' && opts.problemType === 'sakura') return QuizFlow.startSakura(opts.size);
       if (opts.mode === 'normal' && opts.problemType && opts.problemType !== 'single') return QuizFlow.startWords(opts.problemType, opts.size, { categories: opts.categories });
       if (opts.mode === 'normal') return QuizFlow.startNormal(opts.levelId, opts.size);
       if (opts.mode === 'today') return QuizFlow.startToday();
@@ -206,8 +221,7 @@
     const last = QuizFlow.lastLifeScene;
     const stats = p.stats.lifeCategoryCorrect || {};
     const scenes = [RD.ALL_SCENES].concat(RD.lifeCategories());
-    el.appendChild(
-      h(
+    const grid = h(
         'div',
         { class: 'scene-grid', role: 'list' },
         scenes.map((c) => {
@@ -230,8 +244,15 @@
             h('span', { class: 'scene-count' }, `${count}問` + (!kids && correct ? `・正解 ${correct}` : ''))
           );
         })
-      )
-    );
+      );
+    // サクラモード: 「すべて」のすぐ下に、校章を使った特別カードを置く（場面の1つではない）
+    if (KA.SakuraUI && RD.items('sakura').length) {
+      const allBtn = grid.querySelector('.scene-all');
+      const wrap = h('div', { class: 'sk-mode-wrap', role: 'listitem' }, KA.SakuraUI.modeCard(p, kids));
+      if (allBtn && allBtn.nextSibling) grid.insertBefore(wrap, allBtn.nextSibling);
+      else grid.appendChild(wrap);
+    }
+    el.appendChild(grid);
   }
 
   /** 生活漢字: 選んだ場面の問題数の選択 */
@@ -488,6 +509,18 @@
   function renderPrompt(el, q, type, kids) {
     const promptText = kids ? type.prompt.kids : type.prompt.standard;
     if (q.type === 'sentence') return renderSentencePrompt(el, q, promptText);
+    if (q.type === 'sakura') {
+      // サクラモード: 桜色のカード（校章は特別な場面だけで使い、問題ごとには大きく出さない）
+      const card = h(
+        'div',
+        { class: 'life-card sk-question-card', lang: 'ja' },
+        h('span', { class: 'scene-label sk-question-label' }, h('span', { 'aria-hidden': 'true' }, '🌸'), ' サクラモード'),
+        h('span', { class: 'life-word' + (q.word.length >= 5 ? ' long' : '') }, q.word)
+      );
+      el.appendChild(card);
+      el.appendChild(h('p', { class: 'play-prompt' }, promptText));
+      return card;
+    }
     if (q.type === 'life') {
       // 生活漢字: 場面ラベル + 看板風の語（将来 display/image で看板・値札風などに変えられる）
       const cat = RD.category(q.entry.category);
@@ -746,7 +779,7 @@
       { class: 'word-explain' },
       h('div', { class: 'word-answer' }, h('ruby', null, item.word, h('rt', null, item.reading))),
       item.readings.length > 1 ? h('div', { class: 'muted small' }, (kids ? 'ほかの よみ：' : 'ほかの読み方：') + item.readings.slice(1).join('・')) : null,
-      q.type === 'life' && item.sentence ? h('div', { class: 'word-sentence' }, '例：' + item.sentence) : null,
+      (q.type === 'life' || q.type === 'sakura') && item.sentence ? h('div', { class: 'word-sentence' }, '例：' + item.sentence) : null,
       item.meaning ? h('div', { class: 'word-meaning' }, (kids ? 'いみ：' : '意味：') + item.meaning) : null,
       cat && !kids ? h('div', { class: 'muted small' }, cat.icon + ' ' + cat.label) : null
     );
@@ -909,6 +942,8 @@
       });
     }
     playState.card.classList.add(check.correct ? 'is-correct' : 'is-wrong');
+    // サクラモード: 正解したら小さな花びらがふわっと舞う（進行は止めない）
+    if (check.correct && q.type === 'sakura' && KA.SakuraUI) KA.SakuraUI.correctBurst(playState.card);
     // 文の中の読み: 解答欄ごとに ○× を付ける（色だけでなく記号でも）
     if (q.type === 'sentence' && playState.blankInputs && check.blanks && !check.whole) {
       playState.blankInputs.forEach((inp, i) => {
@@ -987,7 +1022,8 @@
     const result = KA.Learning.finish(p, s, completed);
     QuizFlow.lastResult = Object.assign(result, { session: s });
     if (leaving) {
-      // 途中でやめた場合も、獲得した称号は演出する
+      // 途中でやめた場合も、満開・獲得した称号は演出する
+      if (result.sakura && result.sakura.bloom && KA.SakuraUI) KA.SakuraUI.celebrateBloom(p);
       KA.UI.celebrateAll(result.newAchievements, result.newMedals);
       return;
     }
@@ -1023,6 +1059,29 @@
           h('div', { class: 'result-message' }, message)
         )
       );
+
+      // サクラモード: 桜の成長と校章バッジ。満開になった回は特別演出（称号の演出より先に出す）
+      if (s.problemType === 'sakura' && KA.SakuraUI) {
+        const st = KA.Sakura.status(p);
+        el.appendChild(
+          h(
+            'button',
+            { class: 'card sk-result-card', type: 'button', onclick: () => KA.Router.go('sakura'), 'aria-label': `サクラモード ${st.stage.label} ${st.correct} / ${st.total}語、${st.badge.label}。サクラモードの画面へ` },
+            KA.SakuraUI.emblem(st.badge.id, { size: 'sm', alt: '' }),
+            h(
+              'span',
+              { class: 'sk-result-text' },
+              h('span', { class: 'sk-result-stage' }, st.stage.icon + ' ' + st.stage.label),
+              h('span', { class: 'small' }, `${st.correct} / ${st.total}語（${st.rate}%）・${st.badge.icon} ${st.badge.label}`)
+            ),
+            h('span', { class: 'sk-mode-go', 'aria-hidden': 'true' }, '›')
+          )
+        );
+        if (r.sakura && r.sakura.bloom && !r.bloomCelebrated) {
+          r.bloomCelebrated = true;
+          setTimeout(() => KA.SakuraUI.celebrateBloom(p), 300);
+        }
+      }
 
       if (r.newAchievements.length || r.newMedals.length) {
         el.appendChild(

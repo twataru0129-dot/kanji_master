@@ -8,17 +8,42 @@
   const U = KA.Utils;
   const A = KA.Achievements;
 
+  /** レア度のラベル（色だけでなく文字でも） */
+  function rarityChip(def) {
+    const r = def.rarity && A.RARITY[def.rarity];
+    return r ? h('span', { class: 'rarity-chip rarity-' + def.rarity }, r.icon + ' ' + r.label) : null;
+  }
+
+  /** アイコン（校章などの画像がある実績は画像） */
+  function titleIcon(def, extraClass) {
+    if (def.image) {
+      return h('div', { class: 'title-icon title-icon-image' + (extraClass ? ' ' + extraClass : ''), 'aria-hidden': 'true' }, h('img', { src: def.image, alt: '', width: '56', height: '56' }));
+    }
+    return h('div', { class: 'title-icon' + (extraClass ? ' ' + extraClass : ''), 'aria-hidden': 'true' }, def.icon);
+  }
+
   function achievementCard(p, def, ctx, kids) {
     const got = p.achievements[def.id];
     const equipped = p.equippedTitle === def.id;
+    const title = A.titleOf(def);
     if (got) {
       return h(
         'div',
-        { class: 'title-card got' + (equipped ? ' equipped' : '') + (def.hidden ? ' hidden-title' : '') },
-        h('div', { class: 'title-icon', 'aria-hidden': 'true' }, def.icon),
+        { class: 'title-card got' + (equipped ? ' equipped' : '') + (def.hidden ? ' hidden-title' : '') + (def.rarity ? ' rarity-' + def.rarity : '') },
+        rarityChip(def),
+        titleIcon(def),
         h('div', { class: 'title-name' }, def.name),
+        title !== def.name ? h('div', { class: 'title-alias' }, `称号「${title}」`) : null,
         h('div', { class: 'title-desc' }, def.desc),
         h('div', { class: 'title-date' }, '取得日 ' + U.formatDate(got.at)),
+        // 満開・最上位実績は、あとから演出をもう一度見られる
+        (def.id === 'sk_bloom_full' || def.rarity === 'super' || def.rarity === 'legend') && KA.SakuraUI
+          ? h(
+              'button',
+              { class: 'btn btn-small btn-ghost', type: 'button', onclick: () => (def.id === 'sk_bloom_full' ? KA.SakuraUI.celebrateBloom(p) : KA.UI.celebrate(KA.SakuraUI.achievementCelebration(def))) },
+              kids ? '🎬 えんしゅつを みる' : '🎬 演出をもう一度見る'
+            )
+          : null,
         h(
           'button',
           {
@@ -26,7 +51,7 @@
             type: 'button',
             onclick: () => {
               KA.Profiles.equipTitle(p.id, equipped ? null : def.id);
-              KA.UI.toast(equipped ? '称号をはずしました' : `称号「${def.name}」を装備しました`, 'success');
+              KA.UI.toast(equipped ? '称号をはずしました' : `称号「${title}」を装備しました`, 'success');
               KA.Learning.checkEvents(p);
               KA.Router.render();
             },
@@ -44,8 +69,9 @@
     const prog = A.progress(p, def, ctx);
     return h(
       'div',
-      { class: 'title-card locked' },
-      h('div', { class: 'title-icon silhouette', 'aria-hidden': 'true' }, def.icon),
+      { class: 'title-card locked' + (def.rarity ? ' rarity-' + def.rarity : '') },
+      rarityChip(def),
+      titleIcon(def, 'silhouette'),
       h('div', { class: 'title-name' }, '？？？'),
       h('div', { class: 'title-desc' }, def.desc),
       prog && prog[1] > 1
@@ -60,7 +86,7 @@
       const p = KA.Profiles.active();
       const kids = p.displayMode === 'kids';
       let tab = params.tab === 'medals' ? 'medals' : 'titles';
-      let cat = 'all';
+      let cat = params.cat && A.CATEGORIES.some((c) => c.id === params.cat) ? params.cat : 'all';
       el.appendChild(KA.UI.screenHeader(kids ? 'しょうごう・メダル' : '称号・メダル'));
 
       const equipped = KA.UI.titleName(p);

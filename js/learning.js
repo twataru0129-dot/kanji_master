@@ -42,6 +42,8 @@
         now,
       });
       if (info.overcame) profile.stats.overcomeCount++;
+      // サクラモード: 連続正解・苦手克服などをサクラ専用にも記録
+      if (ptype === 'sakura' && KA.Sakura) KA.Sakura.onAnswer(profile, result.correct, info, now);
       if (info.effortComeback) profile.counters.flags.effortComeback = true;
 
       session.results.push({
@@ -130,10 +132,13 @@
         flags.yesterdayClear = true;
       }
 
+      // サクラモード: 満開（300語すべて正解）になった瞬間などを判定
+      const sakura = session.problemType === 'sakura' && KA.Sakura ? KA.Sakura.onFinish(profile, session, now) : null;
+
       const newAchievements = KA.Achievements.evaluate(profile, now);
       const newMedals = KA.Medals.evaluate(profile, now);
       KA.Store.save();
-      return { record, total, correct, perfect, newAchievements, newMedals };
+      return { record, total, correct, perfect, newAchievements, newMedals, sakura };
     },
 
     /** クイズ以外の出来事（図鑑を見た・バックアップした など）の後に呼ぶ */

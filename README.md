@@ -23,6 +23,7 @@ css/screens.css         各画面のスタイル・レスポンシブ
 css/kids.css            キッズ表示用
 css/effects.css         称号獲得などの演出
 css/print.css           プリントの A4 レイアウトと印刷用 CSS（@media print）
+css/sakura.css          サクラモード（校章バッジ・桜ゲージ・花びら・特別演出）
 app.js                  起動処理
 sw.js                   Service Worker（オフライン対応）
 manifest.webmanifest    PWA 設定
@@ -36,10 +37,12 @@ js/proficiency.js       習熟度・苦手判定
 js/history.js           学習履歴（過去30回）・累計成績
 js/quiz.js              出題・答え合わせ（一文字・文の中・生活漢字。問題形式を追加できる設計）
 js/reading-data.js      文の中の読み・生活漢字のデータ管理（問題タイプ・場面カテゴリー）
-js/achievements.js      称号・実績（152個、うち隠し16・将来用6）
+js/achievements.js      称号・実績（184個、うち隠し22・将来用6。サクラモード32個を含む）
 js/medals.js            メダル
 js/learning.js          回答・クイズ終了時の記録をまとめて行う
 js/print.js             プリントメーカーの問題づくり（対象漢字の選択・問題・答え）
+js/sakura.js            サクラモードの進み具合（桜の成長ゲージ・校章バッジ・満開の判定）
+js/sakura-ui.js         サクラモードの画面部品（校章バッジ・ゲージ・花びら・特別演出）
 js/sound.js             効果音
 js/romaji.js            ローマ字→ひらがな変換
 js/ui.js                画面部品・モーダル・演出
@@ -52,6 +55,8 @@ data/kanji-grade1〜6.js 小学1〜6年の漢字（1,026字）
 data/kanji-junior1〜3.js 中学1〜3年の漢字（1,110字・370字ずつ。アプリ独自の目安）
 data/sentences.js       文の中の読み（148問。漢字部分だけを答える answerMode: whole / segments）
 data/life-kanji.js      生活漢字（10場面・154語）
+data/sakura-kanji.js    サクラモード専用（300語・内部タグつき）
+assets/sakura/          サクラモードの校章画像（sakura-emblem.png / -192.png）
 data/sources.js         情報源・ライセンス表示
 assets/icons/           アプリアイコン（kanji- で始まる名前）
 tools/                  データ・アイコン生成スクリプト
@@ -99,6 +104,21 @@ segments の text をつなげると target と一致する必要があります
 生活漢字の場面（カテゴリー）は `registerLifeCategories` に追加できます。
 追加した場面は、生活漢字の「場面をえらぼう」画面に自動で表示されます（`kidsLabel` でキッズ表示用の名前も指定できます）。
 場面は URL `#/quiz-words?type=life&scene=school` で指定でき、`scene=school,work` のようにカンマ区切りで複数指定にも拡張できる設計です。`meaning`（意味問題用）、`image` / `display`（看板風の表示用）も持たせられます。
+
+### サクラモード（v1.7.0〜）
+勤務校（特別支援学校 高等部）の生徒向けの、学校専用の特別モードです。
+「問題 → 生活漢字 → 場面をえらぼう」の「すべて」のすぐ下にある、校章のカードから入ります（URL は `#/sakura`）。
+
+- **300語**：`data/sakura-kanji.js`。学校生活・通学・実習・行事・友達・進路・国語・ルール・安全・健康・お金・ICT・給食・連絡・地域・自立生活・福祉・清掃・備品・時間 などのことば。難易度は設定していません
+- **内部タグ**：各語の `tags`（例 `['commute', 'transport']`）。画面ではジャンルを選ばせず、出題の分散とトロフィーの判定だけに使います。タグの一覧は `registerSakuraTags`（`group` は出題で散らすまとまり）
+- **出題**：問題数（10 / 20 / 30 / 全300問）だけを選びます。タグのまとまりごとに順番に1語ずつ選ぶので、ジャンルがかたよりません。まとまりの中では、最近間違えた・苦手・習熟度が低い・未学習の語を少し優先します（`js/quiz.js` の `Selection.sakura`）
+- **記録**：`profile.records.sakura`（問題IDごと。形式は生活漢字と同じ）と `profile.counters.sakura`（連続正解・苦手克服数・満開の日時など）。通常の生活漢字の記録とは別なので、生活漢字で正解してもサクラの進み具合は変わりません
+- **桜の成長ゲージ**：一度でも正解した語の数（同じ語は何回正解しても1語）。つぼみ 0〜 / 一分咲き 30〜 / 三分咲き 90〜 / 五分咲き 150〜 / 八分咲き 210〜 / もうすぐ満開 270〜 / 満開 300。語を増やしたときは同じ割合で自動計算します（`js/sakura.js`）
+- **校章バッジ**：一度でもマスター習熟度になった語（`rec.mx`）の割合。通常 0〜 / 銀 20%〜 / 金 50%〜 / 桜色発光 80%〜 / 虹色 100%。校章画像はそのままで、CSS（`css/sakura.css`）で枠・光・リングを重ねます
+- **実績**：`js/achievements.js` の `cat: 'sakura'`（32個）。ジャンル制覇は、そのタグを持つ語を「すべて」正解（達人・名人）または「すべて」マスター（マスター）で解除します（`SAKURA_GENRES`）。`rarity`（rare / super / legend）で演出が変わり、`title` があれば装備したときの称号名になります
+
+問題を追加するときは、`data/sakura-kanji.js` の末尾に `sakura_301` から続けて1行追加します（id は学習記録のキーなので、公開後は変更しないでください）。
+読みは語全体（送り仮名も含む）で書き、別の読みも正解にしたいときは `readings` に追加します。タグは既存のものから選び、1つ目を主なジャンルにします。
 
 ### 問題形式を追加する（熟語・部首・送り仮名など）
 `js/quiz.js` の `QUESTION_TYPES` に `build` と `check` を実装し `available: true` にします。

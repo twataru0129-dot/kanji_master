@@ -45,6 +45,7 @@
         single: { q: 0, c: 0, sessions: 0, perfect: 0 },
         sentence: { q: 0, c: 0, sessions: 0, perfect: 0 },
         life: { q: 0, c: 0, sessions: 0, perfect: 0 },
+        sakura: { q: 0, c: 0, sessions: 0, perfect: 0 }, // v1.7.0 サクラモード
       },
       lifeCategoryCorrect: {}, // 生活漢字のカテゴリー別の正解数 { station: 12, ... }
     };
@@ -65,12 +66,24 @@
       equippedTitle: null, // 装備中の称号（実績ID）
       stats: defaultStats(),
       kanji: {}, // 一文字の読み: 漢字ごとの学習記録（proficiency.js 参照）
-      records: { sentence: {}, life: {} }, // 文の中・生活漢字: 問題IDごとの学習記録（形式は kanji と同じ）
+      records: { sentence: {}, life: {}, sakura: {} }, // 文の中・生活漢字・サクラモード: 問題IDごとの学習記録（形式は kanji と同じ）
       history: [], // 直近30回のクイズ記録
       daily: {}, // 日ごとの記録 { 'YYYY-MM-DD': { q, c, wrong: [] } }
       achievements: {}, // { [id]: { at } }
       medals: {}, // { [id]: { at } }
-      counters: { zukanViewed: [], modesCleared: {}, flags: {} },
+      counters: { zukanViewed: [], modesCleared: {}, flags: {}, sakura: defaultSakuraCounters() },
+    };
+  }
+
+  /** サクラモードの記録（学習記録そのものは records.sakura。ここは連続正解・満開などのまとめ） */
+  function defaultSakuraCounters() {
+    return {
+      streak: 0, // サクラモードでの連続正解（回をまたいで続く）
+      bestStreak: 0,
+      overcame: 0, // サクラの問題で苦手を克服した数
+      lastPlayedAt: null, // 最後にサクラモードを学習した日時
+      bloomAt: null, // 満開（300語すべて正解）になった日時
+      flags: {}, // 隠し実績などの判定用
     };
   }
 
@@ -99,7 +112,7 @@
     });
     if (!U.isPlainObject(p.stats.lifeCategoryCorrect)) p.stats.lifeCategoryCorrect = {};
     if (!U.isPlainObject(p.records)) p.records = {};
-    ['sentence', 'life'].forEach((t) => {
+    ['sentence', 'life', 'sakura'].forEach((t) => {
       if (!U.isPlainObject(p.records[t])) p.records[t] = {};
     });
     ['kanji', 'daily', 'achievements', 'medals'].forEach((k) => {
@@ -114,6 +127,12 @@
     if (!Array.isArray(p.counters.zukanViewed)) p.counters.zukanViewed = [];
     if (!U.isPlainObject(p.counters.modesCleared)) p.counters.modesCleared = {};
     if (!U.isPlainObject(p.counters.flags)) p.counters.flags = {};
+    const sk = defaultSakuraCounters();
+    if (!U.isPlainObject(p.counters.sakura)) p.counters.sakura = sk;
+    Object.keys(sk).forEach((k) => {
+      if (p.counters.sakura[k] === undefined) p.counters.sakura[k] = sk[k];
+    });
+    if (!U.isPlainObject(p.counters.sakura.flags)) p.counters.sakura.flags = {};
     if (!INPUT_METHODS[p.inputMethod]) p.inputMethod = 'hiragana';
     if (!DISPLAY_MODES[p.displayMode]) p.displayMode = 'kids';
     if (!p.name) p.name = 'なまえ';

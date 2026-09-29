@@ -4,8 +4,8 @@
  * すべての学習データは localStorage の 1 つのキー「kanjiAppData」にまとめて保存します。
  *
  *   kanjiAppData = {
- *     dataVersion: 2,          // 保存形式のバージョン（アプリのバージョンとは別）
- *                              // 1: v1.0.0 / 2: v1.1.0（問題タイプ対応）
+ *     dataVersion: 3,          // 保存形式のバージョン（アプリのバージョンとは別）
+ *                              // 1: v1.0.0 / 2: v1.1.0（問題タイプ対応） / 3: v1.7.0（サクラモード）
  *     appVersion: '1.0.0',     // 最後に保存したアプリのバージョン
  *     createdAt, updatedAt,
  *     settings: { activeProfileId, sound, ... },
@@ -27,7 +27,7 @@
   const STORAGE_KEY = 'kanjiAppData';
   const PREV_BACKUP_KEY = 'kanjiAppData_beforeImport';
   const CORRUPT_PREFIX = 'kanjiAppData_corrupt_';
-  const CURRENT_DATA_VERSION = 2;
+  const CURRENT_DATA_VERSION = 3;
   const EXPORT_FORMAT = 'kanji-master-backup';
 
   /** localStorage を使う保存先 */
@@ -110,6 +110,25 @@
         if (!st.lifeCategoryCorrect) st.lifeCategoryCorrect = {};
       });
       data.dataVersion = 2;
+    },
+    2: (data) => {
+      // v1.7.0: サクラモード（学校専用の特別モード）の記録領域を追加する。既存の記録は変更しない
+      //  ・records.sakura … サクラモードの問題IDごとの学習記録（形式は生活漢字と同じ）
+      //  ・stats.typeStats.sakura … サクラモードの累計
+      //  ・counters.sakura … サクラモードの連続正解・苦手克服数・満開の記録など
+      Object.keys(data.profiles || {}).forEach((id) => {
+        const p = data.profiles[id];
+        if (!p || typeof p !== 'object') return;
+        if (!p.records || typeof p.records !== 'object') p.records = { sentence: {}, life: {} };
+        if (!p.records.sakura || typeof p.records.sakura !== 'object') p.records.sakura = {};
+        const st = p.stats || (p.stats = {});
+        if (st.typeStats && typeof st.typeStats === 'object' && !st.typeStats.sakura) {
+          st.typeStats.sakura = { q: 0, c: 0, sessions: 0, perfect: 0 };
+        }
+        if (!p.counters || typeof p.counters !== 'object') p.counters = {};
+        if (!p.counters.sakura || typeof p.counters.sakura !== 'object') p.counters.sakura = {};
+      });
+      data.dataVersion = 3;
     },
   };
 
@@ -198,6 +217,8 @@
       }
       try {
         const parsed = JSON.parse(raw);
+        // migrate は parsed を書き換えるので、変換前のバージョンを先に控えておく
+        const loadedVersion = parsed.dataVersion;
         if (typeof parsed.dataVersion === 'number' && parsed.dataVersion < CURRENT_DATA_VERSION) {
           // 形式を変換する前の元データを念のため残しておく
           try {
@@ -207,7 +228,7 @@
           }
         }
         this.data = sanitize(migrate(parsed));
-        if (parsed.dataVersion !== CURRENT_DATA_VERSION) this.save();
+        if (loadedVersion !== CURRENT_DATA_VERSION) this.save();
       } catch (e) {
         // 破損したデータは消さずに別キーへ退避してから新しく始める
         console.error('[Store] saved data is broken:', e);

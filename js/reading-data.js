@@ -7,6 +7,7 @@
  *   single   … 一文字の読み（従来の読み問題。データは data/kanji-grade*.js）
  *   sentence … 文の中の読み
  *   life     … 生活漢字
+ *   sakura   … サクラモード（学校専用の特別モード。データは data/sakura-kanji.js。v1.7.0〜）
  *
  * ■ 文の中の読み（data/sentences.js） ※ v1.3.0 から「漢字部分の読みだけ」を答える
  *   { id: 'sen_001', sentence: '宇宙は広い。', target: '宇宙', answerMode: 'whole', reading: 'うちゅう',
@@ -24,6 +25,11 @@
  *
  *   カテゴリーは registerLifeCategories で追加できます。
  *
+ * ■ サクラモード（data/sakura-kanji.js）
+ *   { id: 'sakura_001', word: '教室', reading: 'きょうしつ', readings?: [...],
+ *     tags: ['school', ...], sentence: '例文', meaning: '意味' }
+ *   tags は内部タグ（registerSakuraTags で定義）。画面では選ばせず、出題の分散とトロフィーの判定に使う。
+ *
  * id は学習記録のキーとして保存されるため、公開後は変更しないでください。
  */
 (function (KA) {
@@ -34,12 +40,15 @@
     single: { id: 'single', label: '一文字の読み', kids: '一文字', icon: '字', desc: 'かんじを見て、よみをこたえよう', kidsDesc: 'かんじの よみ' },
     sentence: { id: 'sentence', label: '文の中の読み', kids: '文の中', icon: '📖', desc: '文の中のことばを読んでみよう', kidsDesc: 'ぶんの なかの ことば' },
     life: { id: 'life', label: '生活漢字', kids: '生活漢字', icon: '🏙️', desc: '生活の中でよく見ることばを読もう', kidsDesc: 'まちで みる ことば' },
+    sakura: { id: 'sakura', label: 'サクラモード', kids: 'サクラモード', icon: '🌸', desc: '学校生活・通学・実習・行事・国語など、学校に関係する漢字に挑戦しよう', kidsDesc: 'がっこうの ことば' },
   };
 
   const categories = []; // { id, label, kidsLabel, icon, order }
   const ALL_SCENES = { id: 'all', label: 'すべて', kidsLabel: 'ぜんぶ', icon: '🌈' };
   const sentences = [];
   const lifeItems = [];
+  const sakuraItems = [];
+  const sakuraTags = []; // { id, label, icon, group }
   const byId = {};
 
   function toArray(v) {
@@ -157,6 +166,36 @@
       (list || []).forEach((raw) => register(lifeItems, raw, 'life'));
     },
 
+    /** サクラモードの内部タグ */
+    registerSakuraTags(list) {
+      (list || []).forEach((t) => {
+        if (t && t.id && !sakuraTags.some((x) => x.id === t.id)) sakuraTags.push(Object.assign({ group: t.id }, t));
+      });
+    },
+
+    /** サクラモードの問題（生活漢字と同じ形。タグは必須） */
+    registerSakura(list) {
+      (list || []).forEach((raw) => {
+        const unknown = (raw.tags || []).filter((t) => !sakuraTags.some((x) => x.id === t));
+        if (unknown.length) console.warn(`[ReadingData] ${raw.id}: 未登録のタグ ${unknown.join(', ')}`);
+        if (!raw.tags || !raw.tags.length) console.warn(`[ReadingData] ${raw.id}: タグがありません`);
+        register(sakuraItems, raw, 'sakura');
+      });
+    },
+
+    sakura(tagIds) {
+      if (!tagIds || !tagIds.length) return sakuraItems;
+      return sakuraItems.filter((it) => it.tags.some((t) => tagIds.includes(t)));
+    },
+
+    sakuraTags() {
+      return sakuraTags.slice();
+    },
+
+    sakuraTag(id) {
+      return sakuraTags.find((t) => t.id === id) || { id, label: id, icon: '🌸', group: id };
+    },
+
     sentences() {
       return sentences;
     },
@@ -166,7 +205,7 @@
     },
 
     items(ptype) {
-      return ptype === 'sentence' ? sentences : ptype === 'life' ? lifeItems : [];
+      return ptype === 'sentence' ? sentences : ptype === 'life' ? lifeItems : ptype === 'sakura' ? sakuraItems : [];
     },
 
     lifeCategories() {
