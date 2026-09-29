@@ -186,10 +186,180 @@
 }
 
 .hero-name {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   font-size: 1.3rem;
   font-weight: 800;
+  text-align: left;
   word-break: break-all;
+  cursor: pointer;
 }
+
+.hero-name:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* 学習レベルの切り替えボタン（ホームのプロフィールカード） */
+.level-switch {
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 2px solid var(--blue, #2f80d9);
+  background: #fff;
+  color: var(--blue-dark);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 2px 0 rgba(47, 128, 217, 0.18);
+  transition: background 0.15s, transform 0.1s;
+}
+
+.level-switch:hover {
+  background: var(--blue-soft);
+}
+
+.level-switch:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.level-switch-caret {
+  font-size: 0.7em;
+  opacity: 0.75;
+}
+
+/* 学習レベルをえらぶ（モーダル） */
+.level-picker-title {
+  margin: 0 44px 4px 0;
+  font-size: 1.25rem;
+}
+
+.level-picker-note {
+  margin: 0 0 8px;
+}
+
+.level-picker-group {
+  margin-top: 12px;
+}
+
+.level-picker-group-title {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.level-picker-list {
+  display: grid;
+  gap: 8px;
+}
+
+.level-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 14px;
+  border: 2px solid #dde5ef;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-option:hover {
+  border-color: var(--blue, #2f80d9);
+}
+
+.level-option.current {
+  border-color: var(--blue, #2f80d9);
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.level-option-check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #cfd8e3;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.level-option.current .level-option-check {
+  border-color: var(--blue, #2f80d9);
+  background: var(--blue, #2f80d9);
+}
+
+.level-option-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.level-option-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.level-option-bar {
+  display: inline-block;
+  width: 70px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e6ecf3;
+  overflow: hidden;
+}
+
+.level-option-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--lv-color, #2f80d9);
+}
+
+/* キッズ表示: 大きなボタンを並べる */
+.level-picker.kids .level-picker-list {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.level-picker.kids .level-option {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 80px;
+  font-size: 1.6rem;
+  text-align: center;
+}
+
+.level-picker.kids .level-option-name {
+  flex: none;
+}
+
+.level-picker.kids .level-option-check {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+}
+
 
 .hero-title {
   color: #a33e6b;

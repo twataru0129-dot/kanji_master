@@ -34,6 +34,7 @@ const PRECACHE = [
   'js/print.js',
   'js/ui.js',
   'js/kana-pad.js',
+  'js/level-picker.js',
   'js/router.js',
   'js/screens/profiles.js',
   'js/screens/home.js',
