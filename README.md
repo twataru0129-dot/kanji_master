@@ -44,6 +44,7 @@ js/sound.js             効果音
 js/romaji.js            ローマ字→ひらがな変換
 js/ui.js                画面部品・モーダル・演出
 js/kana-pad.js          ひらがな入力パネル
+js/level-picker.js      ホームからの学習レベル切り替え（LEVELS から自動生成）
 js/router.js            画面切り替え
 js/screens/*.js         各画面
 
@@ -77,6 +78,11 @@ tools/                  データ・アイコン生成スクリプト
 
 ### 高校の漢字を追加する
 `data/kanji-high1.js` などを作って `KanjiApp.KanjiDB.registerLevel('h1', [...])` を呼び、`index.html` と `sw.js` に追加します。
+ホームの学習レベル切り替え（`js/level-picker.js`）も `LEVELS` から自動で作られるので、データを登録すれば「高校」の欄に並びます。
+
+### 学習レベルの切り替え（v1.6.0〜）
+ホームのプロフィールカードで、名前をタップするとプロフィール切り替え、「📘 小学1年 ▼」をタップすると学習レベルの切り替えです。
+どちらもプロフィールの `level`（設定画面の「いまの学習レベル」と同じ値）を更新するだけで、別の設定は保存しません。
 クイズ・図鑑・習熟度マップに自動で表示されます（レベルIDは `js/kanji-db.js` の `LEVELS` を参照）。
 中学〜高校はアプリ独自の学習レベルなので、`officialGrade` は `null` にしてください。
 

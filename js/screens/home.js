@@ -42,12 +42,36 @@
           h(
             'div',
             { class: 'hero-info' },
-            h('div', { class: 'hero-name' }, p.name, kids ? ' さん' : ''),
+            // 名前 → プロフィール切り替え ／ 学習レベル → 学年切り替え（役割を分ける）
+            h(
+              'button',
+              { class: 'hero-name', type: 'button', 'aria-label': `${p.name}。タップしてプロフィールを切り替える`, onclick: () => KA.Router.go('profiles') },
+              p.name,
+              kids ? ' さん' : ''
+            ),
             title ? h('div', { class: 'hero-title' }, '称号「' + title + '」') : h('div', { class: 'hero-title muted' }, kids ? 'しょうごうを あつめよう！' : '称号を集めて装備しよう'),
             h(
               'div',
               { class: 'hero-meta' },
-              h('span', { class: 'chip' }, level ? level.label : ''),
+              h(
+                'button',
+                {
+                  class: 'chip level-switch',
+                  type: 'button',
+                  style: level ? { '--lv-color': level.color } : null,
+                  'aria-haspopup': 'dialog',
+                  'aria-label': `現在の学習レベル ${level ? level.label : ''}。タップして変更`,
+                  onclick: () =>
+                    KA.LevelPicker.open(p, () => {
+                      KA.Router.render();
+                      const btn = document.querySelector('.level-switch');
+                      if (btn) btn.focus();
+                    }),
+                },
+                h('span', { 'aria-hidden': 'true' }, '📘'),
+                level ? (kids ? level.short : level.label) : '',
+                h('span', { class: 'level-switch-caret', 'aria-hidden': 'true' }, '▼')
+              ),
               h('span', { class: 'chip' }, (kids ? 'しゅうじゅくど ' : '習熟度 ') + levelSummary.rate + '%'),
               medal ? h('span', { class: 'chip chip-medal' }, medal.icon + ' ' + medal.name) : null,
               dayStreak > 0 ? h('span', { class: 'chip chip-fire' }, '🔥 ' + dayStreak + (kids ? 'にち れんぞく' : '日連続')) : null
