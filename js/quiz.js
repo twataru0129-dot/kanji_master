@@ -6,6 +6,7 @@
  *     reading  … 一文字の読み（problemType: single。出題データは漢字データ）
  *     sentence … 文の中の読み（problemType: sentence。data/sentences.js）
  *     life     … 生活漢字（problemType: life。data/life-kanji.js）
+ *     sakura   … サクラモード（problemType: sakura。data/sakura-kanji.js。答え方は生活漢字と同じ）
  * ・答え合わせ
  *
  * 1 回の問題（セッション）の entries には、漢字データ（ptype なし＝single）と
@@ -59,6 +60,14 @@
       build: buildWordQuestion,
       check: checkWordQuestion,
     },
+    sakura: {
+      id: 'sakura',
+      label: 'サクラモード',
+      available: true,
+      prompt: { kids: 'なんと よむ？', standard: 'なんと読む？' },
+      build: buildWordQuestion,
+      check: checkWordQuestion,
+    },
     // ---- 以下は将来追加する形式（available: false の間は画面に出ません） ----
     compound: { id: 'compound', label: '熟語の読み', available: false },
     radical: { id: 'radical', label: '部首', available: false },
@@ -69,7 +78,7 @@
   };
 
   /** 問題タイプ → 問題形式 */
-  const PTYPE_TO_QUESTION = { single: 'reading', sentence: 'sentence', life: 'life' };
+  const PTYPE_TO_QUESTION = { single: 'reading', sentence: 'sentence', life: 'life', sakura: 'sakura' };
 
   /** 出題データの問題タイプ（漢字データは single） */
   function ptypeOf(entry) {
@@ -333,6 +342,45 @@
         .sort((a, b) => a.score - b.score)
         .slice(0, size)
         .map((x) => x.e);
+    },
+
+    /**
+     * サクラモード: 300語から size 問（'all' で全問）
+     * ユーザーにはジャンルを選ばせず、内部タグのまとまり（group）ごとに順番に1語ずつ選んで
+     * ジャンルがかたよらないようにする。まとまりの中では
+     * 最近間違えた → 苦手 → 習熟度が低い → 未学習 を少し優先する（難易度による調整はしない）。
+     */
+    sakura(profile, size) {
+      const now = Date.now();
+      const RD = KA.ReadingData;
+      const pool = RD.items('sakura');
+      if (size === 'all' || !(size > 0) || size > pool.length) size = pool.length;
+      const score = (e) => {
+        const rec = recOf(profile, e);
+        let sc = Math.random();
+        if (!rec) return sc + 0.6; // 未学習
+        const minutes = rec.t ? (now - rec.t) / 60000 : Infinity;
+        if (minutes < RECENT_BLOCK_MINUTES) sc -= 2; // 直前に出たばかり
+        if (rec.lw && U.daysSince(rec.lw, now) <= 7 && (rec.s || 0) < 2) sc += 1.5; // 最近間違えた
+        if (P.isWeak(rec, now)) sc += 1.2; // 苦手
+        const lv = P.level(rec, now);
+        if (lv <= 2) sc += 0.8; // 習熟度が低い
+        if (lv === 4) sc -= 0.4; // マスター済みは少し後回し
+        return sc;
+      };
+      const groups = {};
+      pool.forEach((e) => {
+        const g = RD.sakuraTag(e.tags[0]).group;
+        (groups[g] = groups[g] || []).push({ e, sc: score(e) });
+      });
+      const lists = U.shuffle(Object.keys(groups)).map((g) => groups[g].sort((a, b) => b.sc - a.sc));
+      const picked = [];
+      while (picked.length < size && lists.some((l) => l.length)) {
+        lists.forEach((l) => {
+          if (picked.length < size && l.length) picked.push(l.shift().e);
+        });
+      }
+      return U.shuffle(picked);
     },
 
     /**

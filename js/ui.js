@@ -169,17 +169,21 @@
     celebrating = true;
     const root = document.getElementById('celebration-root');
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const card = h(
-      'div',
-      { class: 'celebration-card ' + (item.kind === 'medal' ? 'is-medal' : '') + (item.hidden ? ' is-hidden-title' : '') },
-      h('div', { class: 'celebration-label' }, item.label),
-      h('div', { class: 'celebration-icon', 'aria-hidden': 'true' }, item.icon),
-      h('div', { class: 'celebration-name' }, item.name),
-      item.desc ? h('div', { class: 'celebration-desc' }, item.desc) : null,
-      h('div', { class: 'celebration-hint' }, 'タップでとじる')
-    );
-    const overlay = h('div', { class: 'celebration', role: 'alert', 'aria-live': 'assertive' }, card);
-    if (!reduce) sparkles(overlay, 26);
+    // item.card があればそれを使う（サクラモードの満開・超レア実績などの特別演出）
+    const card =
+      item.card ||
+      h(
+        'div',
+        { class: 'celebration-card ' + (item.kind === 'medal' ? 'is-medal' : '') + (item.hidden ? ' is-hidden-title' : '') + (item.rarity ? ' rarity-' + item.rarity : '') },
+        h('div', { class: 'celebration-label' }, item.label),
+        h('div', { class: 'celebration-icon', 'aria-hidden': 'true' }, item.icon),
+        h('div', { class: 'celebration-name' }, item.name),
+        item.desc ? h('div', { class: 'celebration-desc' }, item.desc) : null,
+        h('div', { class: 'celebration-hint' }, 'タップでとじる')
+      );
+    const overlay = h('div', { class: 'celebration' + (item.overlayClass ? ' ' + item.overlayClass : ''), role: 'alert', 'aria-live': 'assertive' }, card);
+    if (!reduce) sparkles(overlay, item.sparkles || 26);
+    if (!reduce && item.petals && KA.SakuraUI) KA.SakuraUI.petals(overlay, item.petals, { fall: true });
     root.appendChild(overlay);
     KA.Sound.play(item.kind === 'medal' ? 'medal' : 'achievement');
     let closed = false;
@@ -193,8 +197,8 @@
       }, 220);
     };
     overlay.addEventListener('click', close);
-    // 操作のじゃまにならないよう自動で閉じる
-    setTimeout(close, 2600);
+    // 操作のじゃまにならないよう自動で閉じる（特別演出は少し長め）
+    setTimeout(close, item.duration || 2600);
   }
 
   function celebrate(item) {
@@ -204,13 +208,20 @@
 
   function celebrateAll(achievements, medals) {
     (achievements || []).forEach((def) => {
+      // 超レア・最高レア（サクラモードの最上位実績など）は校章を使った豪華な演出
+      if ((def.rarity === 'super' || def.rarity === 'legend') && KA.SakuraUI) {
+        celebrate(KA.SakuraUI.achievementCelebration(def));
+        return;
+      }
+      const title = KA.Achievements.titleOf(def);
       celebrate({
         kind: 'achievement',
         hidden: !!def.hidden,
-        label: def.hidden ? '🎉 隠し称号を獲得！' : '🎉 称号を獲得！',
+        rarity: def.rarity || null,
+        label: def.hidden ? '🎉 隠し称号を獲得！' : def.rarity === 'rare' ? '✦ レア称号を獲得！' : '🎉 称号を獲得！',
         icon: def.icon,
         name: `『${def.name}』`,
-        desc: def.desc,
+        desc: def.desc + (title !== def.name ? `（称号「${title}」）` : ''),
       });
     });
     (medals || []).forEach((tier) => {
@@ -241,7 +252,7 @@
 
   function titleName(profile) {
     const def = profile && profile.equippedTitle ? KA.Achievements.get(profile.equippedTitle) : null;
-    return def ? def.name : null;
+    return def ? KA.Achievements.titleOf(def) : null;
   }
 
   /** ○○% の横棒 */

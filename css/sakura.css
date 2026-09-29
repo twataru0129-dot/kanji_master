@@ -1,0 +1,626 @@
+/*
+ * サクラモード（学校専用の特別モード）
+ * 白・淡い桜色・アプリの青を組み合わせる。校章画像そのものは変えず、枠・光・リングだけを CSS で重ねる。
+ * prefers-reduced-motion のときは動く演出を止める。
+ */
+:root {
+  --sk-pink: #f28db2;
+  --sk-pink-deep: #d94d86;
+  --sk-pink-soft: #fde8f0;
+  --sk-pink-pale: #fff5f9;
+  --sk-silver-1: #f4f6f9;
+  --sk-silver-2: #aab4c2;
+  --sk-gold-1: #fff3c4;
+  --sk-gold-2: #e0a800;
+  --sk-gold-3: #b98300;
+}
+
+/* ================= 校章バッジ ================= */
+.sk-emblem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.sk-emblem-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sk-size, 76px);
+  height: var(--sk-size, 76px);
+  padding: var(--sk-ring, 4px);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff, var(--sk-pink-soft));
+  box-shadow: 0 2px 10px rgba(217, 77, 134, 0.18);
+}
+
+.sk-emblem-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 55%, var(--sk-pink-pale));
+  padding: 6%;
+}
+
+.sk-emblem-ring {
+  position: absolute;
+  inset: calc(var(--sk-ring, 4px) * -1.6);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.sk-size-sm {
+  --sk-size: 56px;
+  --sk-ring: 3px;
+}
+.sk-size-md {
+  --sk-size: 78px;
+  --sk-ring: 4px;
+}
+.sk-size-lg {
+  --sk-size: min(46vw, 170px);
+  --sk-ring: 6px;
+}
+.sk-size-xl {
+  --sk-size: min(52vw, 200px);
+  --sk-ring: 7px;
+}
+
+/* 通常校章: 白と淡い桜色のふち */
+.sk-badge-normal .sk-emblem-frame {
+  background: linear-gradient(135deg, #ffffff, #fbd3e3);
+}
+
+/* 銀バッジ */
+.sk-badge-silver .sk-emblem-frame {
+  background: conic-gradient(from 30deg, #ffffff, var(--sk-silver-2), #f7f9fc, #8e99a8, #ffffff, var(--sk-silver-2), #ffffff);
+  box-shadow: 0 0 0 2px #fff, 0 4px 14px rgba(90, 105, 125, 0.35);
+}
+
+/* 金バッジ */
+.sk-badge-gold .sk-emblem-frame {
+  background: conic-gradient(from 20deg, var(--sk-gold-1), var(--sk-gold-2), #fff6d0, var(--sk-gold-3), var(--sk-gold-1), var(--sk-gold-2), var(--sk-gold-1));
+  box-shadow: 0 0 0 2px #fff, 0 0 18px rgba(224, 168, 0, 0.55);
+}
+
+/* 桜色発光バッジ */
+.sk-badge-sakura .sk-emblem-frame {
+  background: conic-gradient(from 0deg, #ffd6e7, var(--sk-pink), #fff0f6, var(--sk-pink-deep), #ffd6e7, var(--sk-pink), #ffd6e7);
+  box-shadow: 0 0 0 2px #fff, 0 0 22px rgba(242, 141, 178, 0.85);
+}
+.sk-badge-sakura .sk-emblem-ring {
+  box-shadow: 0 0 18px 6px rgba(242, 141, 178, 0.55);
+  animation: sk-glow 2.4s ease-in-out infinite;
+}
+
+/* 虹色・特別校章 */
+.sk-badge-rainbow .sk-emblem-frame {
+  background: conic-gradient(#ff7a9a, #ffb56b, #ffe066, #7ddc8a, #6cc6ff, #8f8bff, #e38bff, #ff7a9a);
+  box-shadow: 0 0 0 2px #fff, 0 0 26px rgba(255, 190, 120, 0.8);
+}
+.sk-badge-rainbow .sk-emblem-ring {
+  border: 3px solid transparent;
+  background: conic-gradient(#ff7a9a, #ffe066, #6cc6ff, #e38bff, #ff7a9a) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  animation: sk-spin 6s linear infinite;
+  opacity: 0.9;
+}
+
+.sk-badge-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--sk-pink);
+  color: var(--sk-pink-deep);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.sk-badge-gold .sk-badge-label {
+  border-color: var(--sk-gold-2);
+  color: #7a5600;
+}
+.sk-badge-silver .sk-badge-label {
+  border-color: var(--sk-silver-2);
+  color: #4a5263;
+}
+.sk-badge-rainbow .sk-badge-label {
+  border-color: #b48cff;
+  color: #6b3fbf;
+}
+
+@keyframes sk-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ================= 場面選択画面のサクラモードカード ================= */
+.sk-mode-wrap {
+  grid-column: 1 / -1;
+}
+
+.sk-mode-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 112px;
+  padding: 14px 18px;
+  border: 3px solid var(--sk-pink);
+  border-radius: 24px;
+  background: linear-gradient(120deg, #fff 0%, var(--sk-pink-pale) 35%, var(--sk-pink-soft) 70%, #eef5ff 100%);
+  box-shadow: 0 4px 16px rgba(217, 77, 134, 0.18);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.sk-mode-card::after {
+  /* 花びらの飾り */
+  content: '🌸';
+  position: absolute;
+  right: 44px;
+  top: -6px;
+  font-size: 2.4rem;
+  opacity: 0.18;
+  transform: rotate(18deg);
+  pointer-events: none;
+}
+.sk-mode-card:hover {
+  box-shadow: 0 6px 20px rgba(217, 77, 134, 0.28);
+}
+.sk-mode-card:active {
+  transform: translateY(2px);
+}
+
+.sk-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sk-mode-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--sk-pink-deep);
+}
+
+.sk-mode-desc {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.sk-mode-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.sk-mode-stage,
+.sk-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.sk-mode-stage {
+  background: #fff;
+  border: 2px solid var(--sk-pink);
+  color: var(--sk-pink-deep);
+}
+.sk-mode-badge {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.sk-mode-go {
+  flex: none;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--sk-pink-deep);
+}
+
+/* ================= サクラモード開始画面 ================= */
+.screen-sakura {
+  background: linear-gradient(180deg, var(--sk-pink-pale), rgba(255, 255, 255, 0) 420px);
+  border-radius: 24px;
+}
+
+.sk-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 4px;
+  text-align: center;
+}
+
+.sk-hero-title {
+  margin: 6px 0 0;
+  font-size: 1.6rem;
+  color: var(--sk-pink-deep);
+}
+
+.sk-hero-desc {
+  margin: 0;
+  max-width: 34em;
+  color: var(--ink-soft);
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.sk-gauge {
+  border: 2px solid #f8c9da;
+  background: linear-gradient(180deg, #fff, var(--sk-pink-pale));
+}
+
+.sk-gauge-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.sk-gauge-stage {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--sk-pink-deep);
+}
+
+.sk-gauge-count {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.sk-gauge-count small {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.sk-gauge-bar {
+  position: relative;
+  height: 20px;
+  border-radius: 999px;
+  background: #f3e3ea;
+  overflow: hidden;
+}
+
+.sk-gauge-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd1e2, var(--sk-pink), var(--sk-pink-deep));
+  transition: width 0.6s ease;
+}
+
+.sk-gauge-mark {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.sk-stage-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.sk-stage-list li {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f5eef1;
+}
+.sk-stage-list li.done {
+  background: #fde0eb;
+  color: #a33e6b;
+}
+.sk-stage-list li.current {
+  background: var(--sk-pink-deep);
+  color: #fff;
+  font-weight: 800;
+}
+
+.sk-gauge-note {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+}
+
+.sk-badge-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sk-badge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sk-badge-title {
+  font-weight: 700;
+}
+
+.sk-links {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ================= 問題画面 ================= */
+.life-card.sk-question-card {
+  background: linear-gradient(180deg, #ffffff, var(--sk-pink-soft));
+  border-color: var(--sk-pink);
+  color: var(--ink);
+  overflow: visible;
+}
+.sk-question-card .sk-question-label {
+  background: #fff;
+  color: var(--sk-pink-deep);
+  border: 2px solid var(--sk-pink);
+}
+.sk-question-card .life-word {
+  color: var(--ink);
+}
+.life-card.sk-question-card.is-correct {
+  border-color: var(--correct);
+}
+.life-card.sk-question-card.is-wrong {
+  border-color: var(--wrong);
+}
+
+/* ================= 花びら ================= */
+.sk-petal {
+  position: absolute;
+  width: var(--size, 14px);
+  height: var(--size, 14px);
+  border-radius: 150% 0 150% 0;
+  background: linear-gradient(135deg, #ffe3ee, #f7a8c6 70%, #f28db2);
+  box-shadow: 0 0 2px rgba(217, 77, 134, 0.3);
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform, opacity;
+}
+
+/* 正解時: カードの中心から少しだけ舞う */
+.sk-petal.burst {
+  left: 50%;
+  top: 45%;
+  opacity: 0;
+  animation: sk-petal-burst 1.1s ease-out var(--delay, 0s) forwards;
+}
+
+@keyframes sk-petal-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--rot)) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 30px)) rotate(calc(var(--rot) + 160deg)) scale(1);
+  }
+}
+
+/* 演出用: 画面の上から降る */
+.sk-petal.fall {
+  top: -24px;
+  opacity: 0;
+  animation: sk-petal-fall var(--dur, 4s) linear var(--delay, 0s) forwards;
+}
+
+@keyframes sk-petal-fall {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(var(--rot));
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+    transform: translate(var(--drift), 110vh) rotate(calc(var(--rot) + 540deg));
+  }
+}
+
+/* ================= 特別演出（満開・超レア・最高レア） ================= */
+.celebration.sk-overlay {
+  background: radial-gradient(circle, rgba(120, 40, 80, 0.55), rgba(30, 20, 50, 0.78));
+}
+.celebration.sk-overlay.legend {
+  background: radial-gradient(circle, rgba(140, 90, 30, 0.55), rgba(20, 15, 40, 0.85));
+}
+
+.celebration-card.sk-special {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(90vw, 420px);
+  background: linear-gradient(170deg, #ffffff, var(--sk-pink-pale) 45%, var(--sk-pink-soft));
+  border: 5px solid var(--sk-pink);
+}
+.celebration-card.sk-special.rarity-super {
+  border-color: var(--sk-gold-2);
+  box-shadow: 0 0 0 6px rgba(255, 243, 196, 0.6), 0 0 40px rgba(224, 168, 0, 0.6);
+}
+.celebration-card.sk-special.rarity-legend {
+  border: 6px solid transparent;
+  background:
+    linear-gradient(170deg, #ffffff, var(--sk-pink-pale) 45%, var(--sk-pink-soft)) padding-box,
+    conic-gradient(#ff7a9a, #ffb56b, #ffe066, #7ddc8a, #6cc6ff, #8f8bff, #e38bff, #ff7a9a) border-box;
+  box-shadow: 0 0 50px rgba(255, 210, 120, 0.7);
+}
+
+.sk-bloom-text {
+  font-size: clamp(2.6rem, 12vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--sk-pink-deep);
+  text-shadow: 0 2px 0 #fff, 0 0 18px rgba(242, 141, 178, 0.8);
+  animation: celebrate-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.sk-trophy {
+  font-size: 2.4rem;
+}
+
+.sk-title-alias,
+.title-alias {
+  font-weight: 800;
+  color: #a33e6b;
+}
+
+/* ================= 結果画面 ================= */
+.sk-result-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 2px solid #f8c9da;
+  background: linear-gradient(120deg, #fff, var(--sk-pink-pale));
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sk-result-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sk-result-stage {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--sk-pink-deep);
+}
+
+/* ================= 称号画面: レア度 ================= */
+.rarity-chip {
+  align-self: center;
+  display: inline-flex;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+.rarity-chip.rarity-super {
+  background: var(--sk-gold-1);
+  color: #7a5600;
+}
+.rarity-chip.rarity-legend {
+  background: linear-gradient(90deg, #ffe3ee, #fff3c4, #e3f2ff);
+  color: #6b3fbf;
+}
+
+.title-card.got.rarity-rare {
+  border-color: #9bb8ef;
+}
+.title-card.got.rarity-super {
+  border-color: var(--sk-gold-2);
+  box-shadow: 0 0 0 3px var(--sk-gold-1);
+}
+.title-card.got.rarity-legend {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    conic-gradient(#ff7a9a, #ffe066, #6cc6ff, #e38bff, #ff7a9a) border-box;
+}
+
+.title-icon-image img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.title-icon-image.silhouette img {
+  filter: grayscale(1) opacity(0.35);
+}
+
+/* ================= キッズ表示 ================= */
+.mode-kids .sk-mode-card {
+  min-height: 130px;
+}
+.mode-kids .sk-mode-title {
+  font-size: 1.45rem;
+}
+.mode-kids .sk-mode-desc {
+  font-size: 1rem;
+}
+
+/* ================= 小さい画面 ================= */
+@media (max-width: 420px) {
+  .sk-mode-card {
+    gap: 12px;
+    padding: 12px 12px;
+  }
+  .sk-mode-card .sk-size-md {
+    --sk-size: 64px;
+  }
+  .sk-mode-title {
+    font-size: 1.1rem;
+  }
+  .sk-mode-go {
+    display: none;
+  }
+}
+
+/* ================= 動きを減らす設定 ================= */
+@media (prefers-reduced-motion: reduce) {
+  .sk-badge-sakura .sk-emblem-ring,
+  .sk-badge-rainbow .sk-emblem-ring,
+  .sk-bloom-text {
+    animation: none;
+  }
+  .sk-petal {
+    display: none;
+  }
+  .sk-gauge-fill {
+    transition: none;
+  }
+}

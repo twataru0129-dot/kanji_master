@@ -8,6 +8,9 @@
  *   { id, cat, name（称号名）, desc（解除条件）, icon,
  *     hidden?: true   … 取得するまで「？？？」表示
  *     future?: true   … 将来の機能用（まだ取得できない）
+ *     rarity?: 'rare' | 'super' | 'legend'  … レア / 超レア / 最高レア（省略時は通常）。超レア以上は豪華な演出
+ *     title?: '称号名' … 装備したときの称号名（省略時は name）
+ *     image?: '画像パス' … アイコンの代わりに表示する画像（校章など）
  *     check(ctx) → true/false
  *     progress?(ctx) → [現在値, 目標値]   … 「あと○問で解除」の表示に使う }
  *
@@ -33,6 +36,7 @@
     { id: 'style', label: 'いろいろ' },
     { id: 'sentence', label: '文の中の読み' },
     { id: 'life', label: '生活漢字' },
+    { id: 'sakura', label: '🌸 サクラモード' },
     { id: 'legend', label: '伝説' },
     { id: 'hidden', label: '隠し称号' },
     { id: 'future', label: 'これから登場' },
@@ -401,6 +405,184 @@
     }
   );
 
+  /* ---------- v1.7.0: サクラモード ---------- */
+  // 判定は records.sakura（サクラモードでの学習結果）だけを使う。通常の生活漢字の結果は数えない
+  const SK = (c) => c.sakura();
+  const skStage = (stageId) => KA.Sakura.STAGES.find((st) => st.id === stageId);
+  const skNeed = (stageId, c) => KA.Sakura.need(skStage(stageId).ratio, SK(c).total);
+  const skFlag = (key) => (c) => c.profile.counters.sakura && c.profile.counters.sakura.flags ? c.profile.counters.sakura.flags[key] : 0;
+  const skCounter = (key) => (c) => (c.profile.counters.sakura && c.profile.counters.sakura[key]) || 0;
+
+  /** 成長系（異なる語をいくつ正解したか） */
+  function skBloom(id, stageId, name, icon, extra) {
+    return Object.assign(
+      {
+        id,
+        cat: 'sakura',
+        name,
+        get desc() {
+          const total = KA.Sakura ? KA.Sakura.items().length : 300;
+          const n = KA.Sakura ? KA.Sakura.need(skStage(stageId).ratio, total) : 0;
+          return n >= total ? `サクラモードの${total}語すべてを、一度以上正解する` : `サクラモードで、ちがう語を${n}語正解する`;
+        },
+        icon,
+        unit: '語',
+        check: (c) => SK(c).total > 0 && SK(c).correct >= skNeed(stageId, c),
+        progress: (c) => [Math.min(SK(c).correct, skNeed(stageId, c)), skNeed(stageId, c)],
+      },
+      extra || {}
+    );
+  }
+
+  /**
+   * ジャンル制覇（内部タグに属するすべての問題が対象。簡単には取れない）
+   * mode: 'correct' = すべて一度以上正解 / 'master' = すべてマスター
+   */
+  const SAKURA_GENRES = [
+    { id: 'sk_g_commute', tags: ['commute', 'transport'], mode: 'correct', name: '通学の達人', icon: '🚃', label: '通学・交通' },
+    { id: 'sk_g_school', tags: ['school'], mode: 'master', name: '学校生活マスター', icon: '🏫', label: '学校生活' },
+    { id: 'sk_g_work', tags: ['practicum', 'work'], mode: 'correct', name: '実習の達人', icon: '🧰', label: '実習・仕事' },
+    { id: 'sk_g_events', tags: ['events'], mode: 'correct', name: '行事名人', icon: '🎪', label: '学校行事' },
+    { id: 'sk_g_friends', tags: ['relationships'], mode: 'correct', name: 'なかまの達人', icon: '🤝', label: '友達・人間関係' },
+    { id: 'sk_g_japanese', tags: ['japanese'], mode: 'master', name: '国語マスター', icon: '📝', label: '国語' },
+    { id: 'sk_g_career', tags: ['career'], mode: 'master', name: '進路マスター', icon: '🧭', label: '進路・就職' },
+    { id: 'sk_g_safety', tags: ['safety', 'disaster'], mode: 'correct', name: '安全第一', icon: '🚨', label: '安全・防災' },
+    { id: 'sk_g_ict', tags: ['ict'], mode: 'master', name: 'ICTマスター', icon: '💻', label: 'ICT・情報モラル' },
+    { id: 'sk_g_life', tags: ['money', 'shopping', 'public', 'independent_living'], mode: 'master', name: '生活力マスター', icon: '💴', label: 'お金・買い物・公共手続き・自立生活' },
+    // 追加のジャンル（校章の輝きの条件には含めない）
+    { id: 'sk_g_health', tags: ['health'], mode: 'correct', name: '元気の達人', icon: '🩺', label: '健康・保健', extra: true },
+    { id: 'sk_g_manners', tags: ['rules', 'manners'], mode: 'correct', name: 'マナー名人', icon: '🎀', label: 'ルール・マナー', extra: true },
+  ];
+  const SAKURA_MAIN_GENRES = SAKURA_GENRES.filter((g) => !g.extra).map((g) => g.id);
+
+  DEFS.push(
+    // 成長
+    {
+      id: 'sk_bud',
+      cat: 'sakura',
+      name: '桜のつぼみ',
+      desc: 'サクラモードを初めてプレイする',
+      icon: '🌱',
+      check: (c) => ts('sakura', 'q')(c) >= 1,
+    },
+    skBloom('sk_bloom1', 'bloom1', '一分咲き', '🌸'),
+    skBloom('sk_bloom3', 'bloom3', '三分咲き', '🌸'),
+    skBloom('sk_bloom5', 'bloom5', '五分咲き', '🌸'),
+    skBloom('sk_bloom8', 'bloom8', '八分咲き', '🌸', { rarity: 'rare' }),
+    skBloom('sk_bloom_soon', 'soon', 'もうすぐ満開', '🌸', { rarity: 'rare' }),
+    skBloom('sk_bloom_full', 'full', '満開', '🌸', { rarity: 'rare', title: '桜を咲かせし者' })
+  );
+  SAKURA_GENRES.forEach((g) => {
+    const master = g.mode === 'master';
+    DEFS.push({
+      id: g.id,
+      cat: 'sakura',
+      name: g.name,
+      desc: master ? `サクラモードの「${g.label}」の問題を、すべてマスターにする` : `サクラモードの「${g.label}」の問題を、すべて一度以上正解する`,
+      icon: g.icon,
+      rarity: 'rare',
+      unit: '語',
+      check: (c) => {
+        const t = c.sakuraTag(g.tags);
+        return t.total > 0 && (master ? t.mastered : t.correct) >= t.total;
+      },
+      progress: (c) => {
+        const t = c.sakuraTag(g.tags);
+        return [master ? t.mastered : t.correct, t.total];
+      },
+    });
+  });
+  DEFS.push(
+    // 連続正解・満点
+    { id: 'sk_perfect_day', cat: 'sakura', name: '完璧な一日', desc: 'サクラモード10問を全問正解する', icon: '🌸', check: (c) => skFlag('perfect10')(c) >= 1 },
+    Object.assign(threshold('sk_fubuki', 'sakura', '桜吹雪', 'サクラモードで30問連続正解（回をまたいでもOK）', '🌪️', skCounter('bestStreak'), 30, '問'), { rarity: 'rare' }),
+    Object.assign(threshold('sk_sprint', 'sakura', '桜の疾走', 'サクラモードで50問連続正解（回をまたいでもOK）', '🌸🚀', skCounter('bestStreak'), 50, '問'), { rarity: 'rare' }),
+    // 超レア（最上位）
+    {
+      id: 'sk_complete',
+      cat: 'sakura',
+      rarity: 'super',
+      name: 'サクラ完全制覇',
+      title: 'サクラの達人',
+      get desc() {
+        return `サクラモードの${KA.Sakura ? KA.Sakura.items().length : 300}語すべてを、一度以上正解する`;
+      },
+      icon: '🌸🏆',
+      unit: '語',
+      check: (c) => SK(c).total > 0 && SK(c).correct >= SK(c).total,
+      progress: (c) => [SK(c).correct, SK(c).total],
+    },
+    {
+      id: 'sk_master',
+      cat: 'sakura',
+      rarity: 'super',
+      name: 'サクラマスター',
+      title: 'サクラマスター',
+      get desc() {
+        return `サクラモードの${KA.Sakura ? KA.Sakura.items().length : 300}語すべてを、マスター習熟度にする`;
+      },
+      icon: '🌸👑',
+      unit: '語',
+      check: (c) => SK(c).total > 0 && SK(c).mastered >= SK(c).total,
+      progress: (c) => [SK(c).mastered, SK(c).total],
+    },
+    {
+      id: 'sk_eternal',
+      cat: 'sakura',
+      rarity: 'super',
+      name: '永久満開',
+      title: '永久満開',
+      desc: 'サクラモードの全語が「いま」マスター状態で、サクラの苦手問題が0',
+      icon: '🌸💎',
+      unit: '語',
+      check: (c) => SK(c).total > 0 && SK(c).masteredNow >= SK(c).total && SK(c).weak === 0,
+      progress: (c) => [SK(c).masteredNow, SK(c).total],
+    },
+    // 最高レア: 校章の輝き
+    {
+      id: 'sk_emblem',
+      cat: 'sakura',
+      rarity: 'legend',
+      name: '校章の輝き',
+      title: '桜を極めし者',
+      desc: 'サクラモードの主要ジャンル制覇（10個）・サクラマスター・永久満開・桜吹雪をすべて獲得する',
+      icon: '🌸',
+      image: 'assets/sakura/sakura-emblem-192.png',
+      unit: '個',
+      check: (c) => SAKURA_EMBLEM_REQUIRES.every((id) => !!c.profile.achievements[id]),
+      progress: (c) => [SAKURA_EMBLEM_REQUIRES.filter((id) => !!c.profile.achievements[id]).length, SAKURA_EMBLEM_REQUIRES.length],
+    },
+    // 隠し実績
+    { id: 'sk_h_yozakura', cat: 'sakura', hidden: true, name: '夜桜', desc: '夜（19時〜朝5時）にサクラモード10問以上を全問正解', icon: '🌙', check: (c) => !!skFlag('yozakura')(c) },
+    { id: 'sk_h_asazakura', cat: 'sakura', hidden: true, name: '朝桜', desc: '朝（5時〜9時）にサクラモード10問以上を全問正解', icon: '🌅', check: (c) => !!skFlag('asazakura')(c) },
+    { id: 'sk_h_revive', cat: 'sakura', hidden: true, name: '復活の桜', desc: '苦手になったサクラの問題を、10語以上克服する', icon: '🔁', check: (c) => skCounter('overcame')(c) >= 10 },
+    {
+      id: 'sk_h_300',
+      cat: 'sakura',
+      hidden: true,
+      name: '三百の花',
+      get desc() {
+        return `サクラモードの${KA.Sakura ? KA.Sakura.items().length : 300}語すべてに、一度以上出会う（正解でなくてもOK）`;
+      },
+      icon: '🌸🌸🌸',
+      check: (c) => SK(c).total > 0 && SK(c).seen >= SK(c).total,
+    },
+    {
+      id: 'sk_h_dango',
+      cat: 'sakura',
+      hidden: true,
+      name: '花より団子',
+      desc: 'サクラモードの給食・食事の問題を、すべて一度以上正解する',
+      icon: '🍡',
+      check: (c) => {
+        const t = c.sakuraTag(['meals']);
+        return t.total > 0 && t.correct >= t.total;
+      },
+    },
+    { id: 'sk_h_namiki', cat: 'sakura', hidden: true, name: '桜並木', desc: 'サクラモードの全問チャレンジを、最後までやりきる', icon: '🛤️', check: (c) => !!skFlag('namiki')(c) }
+  );
+  const SAKURA_EMBLEM_REQUIRES = SAKURA_MAIN_GENRES.concat(['sk_master', 'sk_eternal', 'sk_fubuki']);
+
   const DEF_MAP = {};
   DEFS.forEach((d) => {
     DEF_MAP[d.id] = d;
@@ -449,15 +631,40 @@
         const rec = P.storeFor(profile, ptype)[id];
         return rec ? rec.c || 0 : 0;
       },
+      // サクラモード（records.sakura だけで判定）
+      sakura: () => {
+        if (!cache.__sakura) cache.__sakura = KA.Sakura ? KA.Sakura.status(profile, now) : { total: 0, seen: 0, correct: 0, mastered: 0, masteredNow: 0, weak: 0 };
+        return cache.__sakura;
+      },
+      sakuraTag: (tags) => {
+        const key = '__sakuraTag:' + tags.join(',');
+        if (!cache[key]) cache[key] = KA.Sakura ? KA.Sakura.tagStatus(profile, tags) : { total: 0, correct: 0, mastered: 0 };
+        return cache[key];
+      },
       lifeCategoryTotal: () => (KA.ReadingData ? KA.ReadingData.lifeCategories().length : 0),
       lifeCategoriesCleared: () =>
         KA.ReadingData ? KA.ReadingData.lifeCategories().filter((cat) => (profile.stats.lifeCategoryCorrect || {})[cat.id] > 0).length : 0,
     };
   }
 
+  /** レア度の表示名（色だけに頼らず文字でも示す） */
+  const RARITY = {
+    rare: { label: 'レア', icon: '✦' },
+    super: { label: '超レア', icon: '✦✦' },
+    legend: { label: '最高レア', icon: '👑' },
+  };
+
   const Achievements = {
     CATEGORIES,
     DEFS,
+    RARITY,
+    SAKURA_GENRES,
+    SAKURA_EMBLEM_REQUIRES,
+
+    /** 装備したときの称号名 */
+    titleOf(def) {
+      return def ? def.title || def.name : null;
+    },
 
     get(id) {
       return DEF_MAP[id] || null;
