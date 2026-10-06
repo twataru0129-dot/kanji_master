@@ -5,7 +5,12 @@
  * マウス・タッチの両方で使えます。
  *
  * 使い方:
- *   const pad = KanaPad.create({ onInput(text), onSubmit() });
+ *   const pad = KanaPad.create({ onInput(text), onSubmit(), actions? });
+ *   actions: パネルの下に置くボタンの並び（「わからない」「こたえる」など）。指定したときは
+ *            道具の列に「こたえる」を置かない
+ *
+ * 回答欄は input ではなく表示専用の要素にし、ボタンでは回答欄にフォーカスを移さない
+ * （端末のキーボード・予測変換・入力履歴を出さないため）。
  *   container.appendChild(pad.el);
  *   pad.setValue('');
  */
@@ -114,10 +119,13 @@
         h('button', { class: 'kana-key kana-tool', type: 'button', 'aria-label': 'ちいさい もじ', onclick: modify(toggleSmall) }, '小'),
         h('button', { class: 'kana-key kana-tool', type: 'button', 'aria-label': 'のばす', onclick: press(() => { value += 'ー'; emit(); }) }, 'ー'),
         h('button', { class: 'kana-key kana-tool kana-del', type: 'button', 'aria-label': '1もじ けす', onclick: press(() => { value = value.slice(0, -1); emit(); }) }, '⌫ けす'),
-        h('button', { class: 'kana-key kana-tool kana-submit', type: 'button', onclick: (e) => { e.preventDefault(); if (opts.onSubmit) opts.onSubmit(); } }, 'こたえる')
+        opts.actions
+          ? null
+          : h('button', { class: 'kana-key kana-tool kana-submit', type: 'button', onclick: (e) => { e.preventDefault(); if (opts.onSubmit) opts.onSubmit(); } }, 'こたえる')
       );
+      if (opts.actions) tools.classList.add('no-submit');
 
-      const el = h('div', { class: 'kana-pad' }, grid, tools);
+      const el = h('div', { class: 'kana-pad' }, grid, tools, opts.actions || null);
       return {
         el,
         setValue(v) {

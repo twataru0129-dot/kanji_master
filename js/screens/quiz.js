@@ -437,7 +437,7 @@
 
   function onKeyDown(e) {
     if (!playState) return;
-    if (e.key === 'Enter' && playState.answered && !e.isComposing && !e.repeat) {
+    if (e.key === 'Enter' && playState.answered && !e.isComposing && e.keyCode !== 229 && !e.repeat) {
       e.preventDefault();
       nextQuestion();
     }
@@ -482,6 +482,7 @@
 
     playState.blankInputs = null;
     playState.pad = null;
+    playState.input = null;
     const card = renderPrompt(el, q, type, kids);
 
     const answerArea = h('div', { class: 'answer-area' });
@@ -493,12 +494,128 @@
     playState.card = card;
 
     el.classList.toggle('with-pad', method === 'hiragana' && playState.usePad);
-    if (method === 'choice') renderChoiceInput(answerArea, q);
+    // 「わからない」は各入力方式の中で「こたえる」の近くに置く（answerActions）
+    if (method === 'choice') renderChoiceInput(answerArea, q, kids);
     else if (q.type === 'sentence') renderBlankAnswerArea(answerArea, method, kids);
     else renderTextInput(answerArea, method, kids);
+  }
 
-    answerArea.appendChild(
-      h('button', { class: 'btn btn-link dont-know', type: 'button', onclick: () => submitAnswer('', true) }, kids ? 'わからない' : 'わからない（答えを見る）')
+  /* ============================================================
+   * 回答欄・ボタンの共通部品
+   * ============================================================ */
+
+  /**
+   * アプリ内のひらがなパネルで入力するときの回答欄（表示専用）
+   * input 要素を使わないので、タップしても端末のキーボード・予測変換・入力履歴は出ない。
+   * 既存の処理と同じように .value で読み書きできる。
+   */
+  function displayField(tag, attrs, placeholder) {
+    const el = h(tag, attrs);
+    let value = '';
+    const paint = () => {
+      el.textContent = value;
+      el.classList.toggle('is-empty', !value);
+    };
+    Object.defineProperty(el, 'value', {
+      get: () => value,
+      set: (v) => {
+        value = String(v == null ? '' : v);
+        paint();
+      },
+    });
+    if (placeholder) el.dataset.placeholder = placeholder;
+    paint();
+    return el;
+  }
+
+  /**
+   * 端末のキーボードで直接入力するときの回答欄の設定
+   * 補完・自動修正・自動大文字・スペルチェックを止める。
+   * （日本語IMEの予測変換は端末側の機能なので、これだけでは完全には止められない）
+   */
+  const DIRECT_INPUT_ATTRS = {
+    type: 'text',
+    lang: 'ja',
+    autocomplete: 'off',
+    autocorrect: 'off',
+    autocapitalize: 'none',
+    spellcheck: 'false',
+    inputmode: 'text',
+  };
+
+  /**
+   * Enter で回答するときの処理。日本語の変換中（変換を確定する Enter を含む）は送信しない
+   */
+  function onEnter(input, handler) {
+    let composing = false;
+    let composedAt = 0;
+    input.addEventListener('compositionstart', () => {
+      composing = true;
+    });
+    input.addEventListener('compositionend', () => {
+      composing = false;
+      composedAt = Date.now();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      // 変換中・変換確定直後（Safari は compositionend の後に Enter の keydown が来る）は送信しない
+      if (e.isComposing || e.keyCode === 229 || composing || Date.now() - composedAt < 80) return;
+      e.preventDefault();
+      e.stopPropagation(); // 同じ Enter で「次へ」まで進まないように
+      if (!playState || playState.answered) return;
+      handler();
+    });
+  }
+
+  /** 「わからない」（補助）と「こたえる」（主）のボタンの並び */
+  function answerActions(kids, onSubmit) {
+    const giveUp = h(
+      'button',
+      { class: 'btn dont-know', type: 'button', 'aria-label': 'わからない（答えを見る）', onclick: () => submitAnswer('', true) },
+      h('span', { class: 'dk-main' }, 'わからない'),
+      kids ? null : h('span', { class: 'dk-sub' }, '（答えを見る）')
+    );
+    const submit = onSubmit ? h('button', { class: 'btn btn-primary answer-submit', type: 'button', onclick: onSubmit }, kids ? 'こたえる' : '答える') : null;
+    return h('div', { class: 'answer-actions' + (submit ? '' : ' only-give-up') }, giveUp, submit);
+  }
+
+  /** いま入力している途中の答え（入力方式を切り替えても引き継ぐ） */
+  function saveDraft() {
+    if (!playState) return;
+    if (playState.blankInputs && playState.blankInputs.length) playState.draft = blankValues();
+    else if (playState.input) playState.draft = playState.input.value;
+  }
+
+  /** 引き継いだ答えを取り出す（ひらがなパネルへ戻すときは、ローマ字をひらがなにする） */
+  function takeDraft(toPad) {
+    const d = playState.draft;
+    playState.draft = null;
+    const fix = (v) => (toPad && KA.Romaji.hasLatin(v || '') ? KA.Romaji.toHiragana(v, true) : v || '');
+    if (Array.isArray(d)) return d.map(fix);
+    return typeof d === 'string' ? fix(d) : null;
+  }
+
+  /** 端末のキーボードを閉じる（直接入力欄のフォーカスをはずす） */
+  function closeDeviceKeyboard() {
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a.blur) a.blur();
+  }
+
+  /** 「スマホ・PCのキーボードで入力する」⇔「ひらがなパネルで入力する」 */
+  function padToggle(usePad) {
+    return h(
+      'button',
+      {
+        class: 'btn btn-link small input-mode-toggle',
+        type: 'button',
+        onclick: () => {
+          saveDraft();
+          closeDeviceKeyboard();
+          playState.usePad = !playState.usePad;
+          renderQuestion();
+        },
+      },
+      usePad ? '📱 スマホ・PCのキーボードで入力する' : '🔤 ひらがなパネルで入力する'
     );
   }
 
@@ -569,21 +686,25 @@
       let box;
       if (method === 'choice') {
         box = h('span', { class: 'blank-box', 'aria-label': `${seg.text}の読み` }, '\u3000');
-      } else {
-        box = h('input', {
-          type: 'text',
-          class: 'blank-input',
-          lang: 'ja',
-          autocomplete: 'off',
-          autocorrect: 'off',
-          autocapitalize: 'off',
-          spellcheck: 'false',
-          enterkeyhint: i < q.blanks.length - 1 ? 'next' : 'done',
+      } else if (usePad) {
+        // ひらがなパネル: 表示専用の欄（タップは「この欄に入れる」を選ぶだけ。キーボードは出ない）
+        box = displayField('button', {
+          type: 'button',
+          class: 'blank-input blank-display',
           'aria-label': `「${seg.text}」の読み（${i + 1}つめ）`,
-          readonly: usePad ? true : null,
-          inputmode: usePad ? 'none' : 'text',
           dataset: { i: String(i) },
         });
+        inputs.push(box);
+      } else {
+        box = h(
+          'input',
+          Object.assign({}, DIRECT_INPUT_ATTRS, {
+            class: 'blank-input',
+            enterkeyhint: i < q.blanks.length - 1 ? 'next' : 'done',
+            'aria-label': `「${seg.text}」の読み（${i + 1}つめ）`,
+            dataset: { i: String(i) },
+          })
+        );
         inputs.push(box);
       }
       const group = h(
@@ -670,25 +791,25 @@
       area.appendChild(h('p', { class: 'blank-hint' }, kids ? 'しかくを タップして えらんでから いれてね' : '（　）をタップして、それぞれの読みを入れましょう'));
     }
     area.appendChild(preview);
+    // 入力方式を切り替える前に入れていた答えを戻す
+    const draft = takeDraft(usePad);
+    if (Array.isArray(draft)) draft.forEach((v, i) => inputs[i] && (inputs[i].value = v));
     inputs.forEach((inp, i) => {
       fitBlank(inp);
       inp.addEventListener('focus', () => selectBlank(i));
       inp.addEventListener('click', () => selectBlank(i));
+      if (usePad) return;
       inp.addEventListener('input', () => {
         fitBlank(inp);
         updateBlankPreview();
       });
-      inp.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
-          e.preventDefault();
-          e.stopPropagation(); // 同じ Enter で「次へ」まで進まないように
-          if (playState.answered) return;
-          const nextEmpty = inputs.findIndex((x, j) => j > i && !x.value.trim());
-          if (nextEmpty >= 0) inputs[nextEmpty].focus();
-          else submitBlanks();
-        }
+      onEnter(inp, () => {
+        const nextEmpty = inputs.findIndex((x, j) => j > i && !x.value.trim());
+        if (nextEmpty >= 0) inputs[nextEmpty].focus();
+        else submitBlanks();
       });
     });
+    const actions = answerActions(kids, submitBlanks);
     if (usePad) {
       const pad = KA.KanaPad.create({
         onInput(v) {
@@ -697,29 +818,14 @@
           inp.value = v;
           fitBlank(inp);
         },
-        onSubmit: submitBlanks,
+        actions,
       });
       playState.pad = pad;
       area.appendChild(pad.el);
     } else {
-      area.appendChild(h('div', { class: 'answer-row center' }, h('button', { class: 'btn btn-primary answer-submit', type: 'button', onclick: submitBlanks }, kids ? 'こたえる' : '答える')));
+      area.appendChild(actions);
     }
-    if (method === 'hiragana') {
-      area.appendChild(
-        h(
-          'button',
-          {
-            class: 'btn btn-link small',
-            type: 'button',
-            onclick: () => {
-              playState.usePad = !playState.usePad;
-              renderQuestion();
-            },
-          },
-          usePad ? '📱 スマホ・PCのキーボードで入力する' : '🔤 ひらがなパネルで入力する'
-        )
-      );
-    }
+    if (method === 'hiragana') area.appendChild(padToggle(usePad));
     selectBlank(0);
     if (!usePad) setTimeout(() => inputs[0] && inputs[0].focus(), 50);
   }
@@ -785,7 +891,7 @@
     );
   }
 
-  function renderChoiceInput(area, q) {
+  function renderChoiceInput(area, q, kids) {
     const grid = h('div', { class: 'choice-grid' });
     q.choices.forEach((c) => {
       grid.appendChild(
@@ -802,72 +908,54 @@
       );
     });
     area.appendChild(grid);
+    area.appendChild(answerActions(kids, null));
   }
 
   function renderTextInput(area, method, kids) {
     const usePad = method === 'hiragana' && playState.usePad;
     const preview = h('div', { class: 'romaji-preview', 'aria-live': 'polite' });
-    const input = h('input', {
-      type: 'text',
-      class: 'answer-input',
-      lang: 'ja',
-      autocomplete: 'off',
-      autocorrect: 'off',
-      autocapitalize: 'off',
-      spellcheck: 'false',
-      enterkeyhint: 'done',
-      'aria-label': 'よみを入力',
-      placeholder: method === 'romaji' ? 'よみを入力（例: gakkou / がっこう）' : kids ? 'ここに よみ' : 'よみをひらがなで',
-      readonly: usePad ? true : null,
-      inputmode: usePad ? 'none' : 'text',
-    });
+    const placeholder = method === 'romaji' ? 'よみを入力（例: gakkou / がっこう）' : kids ? 'ここに よみ' : 'よみをひらがなで';
+    // ひらがなパネル: 表示専用の欄（キーボード・予測変換を出さない） / キーボード: 補完を止めた入力欄
+    const input = usePad
+      ? displayField('div', { class: 'answer-input answer-display', role: 'textbox', 'aria-readonly': 'true', 'aria-label': 'よみ（ひらがなパネルで入力）' }, placeholder)
+      : h('input', Object.assign({}, DIRECT_INPUT_ATTRS, { class: 'answer-input', enterkeyhint: 'done', 'aria-label': 'よみを入力', placeholder }));
     const updatePreview = () => {
       const v = input.value;
-      preview.textContent = KA.Romaji.hasLatin(v) ? '→ ' + KA.Romaji.toHiragana(v, false) : ' ';
+      preview.textContent = KA.Romaji.hasLatin(v) ? '→ ' + KA.Romaji.toHiragana(v, false) : '\u00a0';
     };
-    input.addEventListener('input', updatePreview);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
-        e.preventDefault();
-        // 同じ Enter で「次へ」まで進まないように止める
-        e.stopPropagation();
-        if (!playState.answered) submitAnswer(input.value);
-      }
-    });
-    const submitBtn = h('button', { class: 'btn btn-primary answer-submit', type: 'button', onclick: () => submitAnswer(input.value) }, kids ? 'こたえる' : '答える');
-    const row = h('div', { class: 'answer-row' }, input, usePad ? null : submitBtn);
-    area.appendChild(row);
+    const submit = () => {
+      if (!playState.answered) submitAnswer(input.value);
+    };
+    if (!usePad) {
+      input.addEventListener('input', updatePreview);
+      onEnter(input, submit);
+    }
+    area.appendChild(h('div', { class: 'answer-row' }, input));
     area.appendChild(preview);
     playState.input = input;
 
+    // 入力方式を切り替える前に入れていた答えを戻す
+    const draft = takeDraft(usePad);
+    if (typeof draft === 'string') {
+      input.value = draft;
+      updatePreview();
+    }
+
+    const actions = answerActions(kids, submit);
     if (usePad) {
       const pad = KA.KanaPad.create({
         onInput(v) {
           input.value = v;
         },
-        onSubmit() {
-          if (!playState.answered) submitAnswer(input.value);
-        },
+        actions,
       });
+      pad.setValue(input.value);
       playState.pad = pad;
       area.appendChild(pad.el);
+    } else {
+      area.appendChild(actions);
     }
-    if (method === 'hiragana') {
-      area.appendChild(
-        h(
-          'button',
-          {
-            class: 'btn btn-link small',
-            type: 'button',
-            onclick: () => {
-              playState.usePad = !playState.usePad;
-              renderQuestion();
-            },
-          },
-          usePad ? '📱 スマホ・PCのキーボードで入力する' : '🔤 ひらがなパネルで入力する'
-        )
-      );
-    }
+    if (method === 'hiragana') area.appendChild(padToggle(usePad));
     if (!usePad) setTimeout(() => input.focus(), 50);
   }
 
@@ -891,8 +979,11 @@
               class: 'choice-card' + (s.inputMethod === m ? ' selected' : ''),
               type: 'button',
               onclick: () => {
+                saveDraft();
+                if (m === 'choice') playState.draft = null; // 4択には入力途中の答えがない
                 s.inputMethod = m;
                 if (m === 'hiragana') playState.usePad = true;
+                closeDeviceKeyboard();
                 modal.close();
                 renderQuestion();
               },
@@ -1010,6 +1101,7 @@
 
   function nextQuestion() {
     if (!playState || !playState.answered) return;
+    playState.draft = null;
     if (playState.timer) clearTimeout(playState.timer);
     playState.timer = null;
     renderQuestion();
