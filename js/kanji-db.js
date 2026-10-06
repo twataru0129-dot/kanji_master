@@ -59,6 +59,7 @@
   };
 
   const byLevel = {}; // levelId -> [entry]
+  const extraReadings = {}; // kanji -> [{ reading, type, word }]（一文字の読みだけで正解にする追加の読み）
   const byKanji = {}; // kanji -> entry
 
   function toArray(v) {
@@ -103,6 +104,30 @@
   const KanjiDB = {
     LEVELS,
     GROUP_LABELS,
+
+    /**
+     * 一文字の読み問題だけで追加で正解にする読み（data/kanji-extra-readings.js から呼ばれる）
+     *   { kanji: '暮', reading: 'くれ', word: '暮れ', type: 'kun' }
+     * 漢字データの音訓・送り仮名の表示は変えず、acceptedReadings（一文字の読みの判定）にだけ加える。
+     * 文の中の読み・生活漢字・サクラモードは、それぞれの問題に登録された読みで判定するので影響しない。
+     */
+    registerExtraReadings(list) {
+      (list || []).forEach((x) => {
+        if (!x || !x.kanji || !/^[ぁ-ゖー]+$/.test(x.reading || '')) {
+          console.warn('[KanjiDB] 追加の読みの形式が正しくありません:', x);
+          return;
+        }
+        if (!extraReadings[x.kanji]) extraReadings[x.kanji] = [];
+        if (!extraReadings[x.kanji].some((r) => r.reading === x.reading)) {
+          extraReadings[x.kanji].push({ reading: x.reading, type: x.type === 'on' ? 'on' : 'kun', word: x.word || '' });
+        }
+      });
+    },
+
+    /** 一文字の読み問題で追加で正解にする読み（無ければ空の配列） */
+    extraReadings(kanji) {
+      return (extraReadings[kanji] || []).slice();
+    },
 
     /** data/*.js から呼ばれる */
     registerLevel(levelId, entries) {
@@ -178,10 +203,12 @@
     acceptedReadings(entry) {
       const U = KA.Utils;
       const out = [];
-      const add = (reading, type, display) => {
+      const add = (reading, type, display, word) => {
         if (!reading) return;
         if (out.some((r) => r.reading === reading)) return;
-        out.push({ reading, type, display: display || reading });
+        const item = { reading, type, display: display || reading };
+        if (word) item.word = word; // 追加の読み: どの言葉の読みか（例: 暮れ）
+        out.push(item);
       };
       entry.onyomi.forEach((r) => add(U.kataToHira(r), 'on', r));
       entry.kunyomi.forEach((r) => {
@@ -193,6 +220,8 @@
         const isOn = /^[ァ-ヶー]+$/.test(r);
         add(isOn ? U.kataToHira(r) : KanjiDB.kunFull(r), isOn ? 'on' : 'kun', r);
       });
+      // 明示的に登録した追加の読み（例: 暮 → くれ〔暮れ〕）。前方一致や活用形の自動生成はしない
+      KanjiDB.extraReadings(entry.kanji).forEach((x) => add(x.reading, x.type, x.word ? `${x.word}（${x.reading}）` : x.reading, x.word));
       return out;
     },
 

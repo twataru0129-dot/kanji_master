@@ -57,6 +57,7 @@ data/sentences.js       文の中の読み（148問。漢字部分だけを答�
 data/life-kanji.js      生活漢字（10場面・154語）
 data/sakura-kanji.js    サクラモード専用（300語・内部タグつき）
 assets/sakura/          サクラモードの校章画像（sakura-emblem.png / -192.png）
+data/kanji-extra-readings.js 一文字の読みで追加で正解にする読み（例: 暮 → くれ〔暮れ〕）
 data/sources.js         情報源・ライセンス表示
 assets/icons/           アプリアイコン（kanji- で始まる名前）
 tools/                  データ・アイコン生成スクリプト

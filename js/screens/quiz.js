@@ -567,6 +567,12 @@
     });
   }
 
+  /** 正解した読みの表示: 「くれ」（訓読み） / 追加の読みは 「くれ」（「暮れ」の読み） */
+  function matchedLabel(m, kids) {
+    if (m.word) return kids ? `「${m.reading}」（${m.word}）` : `「${m.reading}」（「${m.word}」の読み）`;
+    return `「${m.reading}」` + (kids ? '' : m.type === 'on' ? '（音読み）' : '（訓読み）');
+  }
+
   /** 「わからない」（補助）と「こたえる」（主）のボタンの並び */
   function answerActions(kids, onSubmit) {
     const giveUp = h(
@@ -722,7 +728,10 @@
       word.appendChild(group);
       lastBlank = group;
     });
-    const card = h('div', { class: 'sentence-card sentence-fill', lang: 'ja' }, h('p', { class: 'sentence-text' }, before, word, after));
+    // 句読点（。、？など）だけが次の行に送られないよう、直前の語・文字とひとかたまりにする
+    const leadPunct = (/^[。、！？」）!?]+/.exec(after || '') || [''])[0];
+    if (leadPunct) (lastBlank || word).appendChild(h('span', { class: 'seg-okuri' }, leadPunct));
+    const card = h('div', { class: 'sentence-card sentence-fill', lang: 'ja' }, h('p', { class: 'sentence-text' }, before, word, sentenceTail(after.slice(leadPunct.length))));
     el.appendChild(card);
     if (method === 'choice' && q.choiceKind === 'full') {
       // 解答欄が複数ある問題の4択は、語全体の読みを選ぶ
@@ -732,6 +741,13 @@
     playState.blankInputs = inputs;
     playState.activeBlank = 0;
     return card;
+  }
+
+  /** 文の後ろの部分: 末尾の句読点だけが次の行に送られないよう、直前の2文字とひとかたまりにする */
+  function sentenceTail(text) {
+    const m = /^([\s\S]*?)(.{0,2}[。、！？」）!?]+)$/.exec(text || '');
+    if (!m || !m[2]) return text;
+    return [m[1], h('span', { class: 'nowrap' }, m[2])];
   }
 
   /** 解答欄の幅を入力に合わせる */
@@ -1071,7 +1087,7 @@
             check.correct ? (kids ? 'せいかい！' : '正解！') : giveUp ? (kids ? 'こたえは これ' : '答え') : kids ? 'ざんねん…' : '不正解'
           ),
           check.matched && q.ptype === 'single'
-            ? h('span', { class: 'feedback-matched' }, `「${check.matched.reading}」` + (kids ? '' : check.matched.type === 'on' ? '（音読み）' : '（訓読み）'))
+            ? h('span', { class: 'feedback-matched' }, matchedLabel(check.matched, kids))
             : null
         ),
         !check.correct && !giveUp && check.normalized && !(q.type === 'sentence' && check.blanks && !check.whole)
