@@ -864,8 +864,7 @@
   -webkit-user-select: none;
 }
 
-.answer-display.is-empty::before,
-.blank-display.is-empty::before {
+.answer-display.is-empty::before {
   content: attr(data-placeholder);
   color: #8a93a3;
   font-weight: 400;
@@ -2475,20 +2474,33 @@
 /* ================================================================
  * v1.3.0 文の中の読み: 漢字（　）送り仮名 の解答欄
  * ================================================================ */
-.sentence-fill .sentence-text {
-  line-height: 2.2;
+/*
+ * 文章と解答欄の段差をなくすための考え方（すべての問題に共通）
+ *  ・漢字・かっこ・解答欄・送り仮名・前後の文章を、すべて同じ「基準線（ベースライン）」にそろえる
+ *  ・解答欄の高さは固定（空欄のときも入力後も同じ）。枠線の太さも状態によって変えない
+ *  ・行の高さ（line-height）は解答欄が入る高さにして、解答欄がある行だけ広がらないようにする
+ *  ・選択中の目印（▲・外側の光）は position / box-shadow で描き、文字や欄を動かさない
+ */
+.sentence-fill .sentence-text,
+.screen-play.with-pad .sentence-fill .sentence-text {
+  /* 解答欄（高さ 最低42px）＋上下の余白（選択中の ▲ が入る分）が必ず入る行の高さ */
+  line-height: max(2.5em, calc(42px + 1.1em));
+}
+
+.sentence-fill .nowrap {
+  white-space: nowrap;
 }
 
 .sentence-word {
   white-space: normal;
 }
 
-/* 漢字＋（解答欄）はひとかたまりで折り返す */
+/* 漢字＋（解答欄）はひとかたまりで折り返す。中も外も基準線でそろえる */
 .seg-blank {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   white-space: nowrap;
-  vertical-align: middle;
+  vertical-align: baseline;
   position: relative;
   margin: 0 0.05em;
 }
@@ -2504,30 +2516,35 @@
 .blank-paren {
   font-weight: 400;
   color: #8a5a00;
+  font-feature-settings: 'halt'; /* 全角かっこの外側の余白を詰める（対応フォントのみ） */
 }
 
+/* 解答欄: キーボード入力（input）・ひらがなパネル（button）・4択（span）で同じ大きさ・同じ基準線 */
 .blank-input,
 .blank-box {
+  --blank-h: max(2.35em, 42px); /* 指でタップしやすい高さ（枠を含めて42px以上） */
+  display: inline-block;
   min-width: 2.6em;
   width: 3.2em;
   max-width: 9em;
-  min-height: max(1.9em, 34px); /* 指でタップしやすい高さ（枠を含めて約40px以上） */
-  padding: 0.05em 0.2em;
-  border: 2px solid #b9c4d4;
+  height: var(--blank-h);
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.2em;
+  border: 3px solid #b9c4d4; /* 選択中も同じ太さ（色だけ変える）なので欄が動かない */
   border-radius: 10px;
   background: #fffdf3;
   font: inherit;
   font-family: var(--font);
-  font-size: 0.72em;
+  font-size: 0.75em;
   font-weight: 800;
-  line-height: 1.5;
+  line-height: calc(var(--blank-h) - 6px);
   text-align: center;
+  vertical-align: baseline;
   color: var(--blue-dark);
-  box-sizing: content-box;
-}
-
-.blank-box {
-  display: inline-block;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .blank-box.filled {
@@ -2542,38 +2559,41 @@
   cursor: pointer;
 }
 
-/* ひらがなパネル用の解答欄（ボタン。押すと「この欄に入れる」を選ぶ） */
+/* ひらがなパネル用の解答欄（ボタン。押すと「この欄に入れる」を選ぶ）
+ * 文字色・行の高さ・基準線は .blank-input と同じにして、キーボード入力のときと見た目をそろえる */
 .blank-display {
-  display: inline-block;
-  color: var(--ink);
   cursor: pointer;
-  line-height: 1.5;
-  text-align: center;
-  vertical-align: middle;
   -webkit-appearance: none;
   appearance: none;
+  touch-action: manipulation;
+}
+
+/* 空欄でも基準線ができるよう、幅のない文字を入れておく（空欄と入力後で位置が変わらない） */
+.blank-display.is-empty::before {
+  content: '\200b';
 }
 
 .blank-input:focus {
   outline: none;
 }
 
-/* 選択中の欄: 太い枠 + 背景色 + 下の ▲（色だけに頼らない） */
+/* 選択中の欄: 枠の色 + 外側の光 + 背景色 + 下の ▲（色だけに頼らない）。枠の太さは変えない */
 .blank-input.active {
-  border: 3px solid var(--blue);
+  border-color: var(--blue);
   background: #e8f2ff;
-  box-shadow: 0 0 0 3px rgba(47, 127, 216, 0.25);
+  box-shadow: 0 0 0 3px rgba(47, 127, 216, 0.3);
 }
 
 .seg-blank.active::after {
   content: '▲';
   position: absolute;
   left: 50%;
-  bottom: -1.1em;
+  bottom: -0.95em; /* 解答欄のすぐ下（行の余白の中）。次の行の文字・欄には重ならない */
   transform: translateX(15%);
-  font-size: 0.45em;
+  font-size: 0.4em;
   color: var(--blue);
   line-height: 1;
+  pointer-events: none;
 }
 
 .seg-blank.blank-ok .blank-input {
@@ -2677,13 +2697,11 @@
 @media (max-width: 420px) {
   .sentence-fill .sentence-text {
     font-size: 1.55rem;
-    line-height: 2.3;
   }
   .blank-input,
   .blank-box {
     min-width: 2.4em;
     font-size: 0.78em;
-    min-height: max(1.9em, 36px);
   }
 }
 

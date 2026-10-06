@@ -58,6 +58,7 @@ const PRECACHE = [
   'data/kanji-junior1.js',
   'data/kanji-junior2.js',
   'data/kanji-junior3.js',
+  'data/kanji-extra-readings.js',
   'data/sources.js',
   'js/reading-data.js',
   'data/sentences.js',
