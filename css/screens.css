@@ -771,8 +771,104 @@
   opacity: 1;
 }
 
+/* 「わからない」（補助）と「こたえる」（主）
+ * どちらも高さ 48px 以上。補助ボタンも文字は濃く、枠線ではっきり見せる。
+ * 間を 14px あけて押しまちがいを防ぐ */
+.answer-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 14px;
+  width: 100%;
+  max-width: 520px;
+  margin-top: 6px;
+}
+
+.answer-actions.only-give-up {
+  grid-template-columns: minmax(44px, 300px);
+  justify-content: center;
+}
+
+.answer-actions .btn {
+  min-height: 52px;
+  min-width: 44px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
 .dont-know {
-  font-size: 0.9rem;
+  border: 2px solid #5f6878;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 3px 0 #c9d2de;
+}
+
+.dont-know:hover:not(:disabled) {
+  background: #f3f6fa;
+}
+
+/* 「わからない」「（答えを見る）」はそれぞれ途中で改行しない（幅が足りないときは2行に分ける） */
+.dont-know {
+  flex-wrap: wrap;
+  column-gap: 0;
+  row-gap: 0;
+}
+
+.dont-know .dk-main,
+.dont-know .dk-sub {
+  white-space: nowrap;
+}
+
+.dont-know .dk-sub {
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.answer-actions .answer-submit {
+  font-size: 1.2rem;
+}
+
+/* ひらがなパネルの下に置くときは、道具の列との間を少しあける */
+.kana-pad .answer-actions {
+  max-width: none;
+  margin-top: 12px;
+}
+
+/* 狭い画面では「（答えを見る）」を省いて1行に収める */
+@media (max-width: 420px) {
+  .dont-know .dk-sub {
+    display: none;
+  }
+  .answer-actions .btn {
+    font-size: 1.05rem;
+    padding: 8px 10px;
+  }
+}
+
+/* キーボード ⇔ ひらがなパネル の切り替え */
+.input-mode-toggle {
+  min-height: 44px;
+}
+
+/* ひらがなパネル用の回答欄（表示専用。キーボード・予測変換を出さない） */
+.answer-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-weight: 700;
+  word-break: break-all;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.answer-display.is-empty::before,
+.blank-display.is-empty::before {
+  content: attr(data-placeholder);
+  color: #8a93a3;
+  font-weight: 400;
 }
 
 .input-switch {
@@ -820,6 +916,10 @@
   grid-template-columns: 1fr 1fr 1fr 1.6fr 2.2fr;
   gap: 6px;
   margin-top: 6px;
+}
+
+.kana-tools.no-submit {
+  grid-template-columns: 1fr 1fr 1fr 1.6fr;
 }
 
 .kana-tool {
@@ -2440,6 +2540,18 @@
 .blank-input[readonly] {
   caret-color: transparent;
   cursor: pointer;
+}
+
+/* ひらがなパネル用の解答欄（ボタン。押すと「この欄に入れる」を選ぶ） */
+.blank-display {
+  display: inline-block;
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .blank-input:focus {
