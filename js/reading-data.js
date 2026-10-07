@@ -25,6 +25,16 @@
  *
  *   カテゴリーは registerLifeCategories で追加できます。
  *
+ * ■ 漢字とかなが混ざる語（生活漢字・サクラモード共通。v1.7.4〜）
+ *   { id: 'life_home_007', word: '資源ごみ', reading: 'しげんごみ',
+ *     parts: [{ text: '資源', reading: 'しげん' }, { text: 'ごみ' }] }
+ *   parts … 語を「漢字の部分（reading あり）」と「かなの部分（reading なし）」に分けたもの。
+ *           漢字の部分の読みは自動で推測せず、ここに明示します（別の読みは readings: [...]）。
+ *   語全体の読み（reading / readings）に加えて、漢字の部分の読みを語順につないだもの
+ *   （例: しげん、申し込み → もうこ）も正解にします（item.kanjiReadings）。
+ *   読み込み時に、parts をつなぐと word になるか・語全体の読みと合うかを確かめ、合わなければ警告します。
+ *   漢字とかなが混ざる語に parts が無いときも警告します。
+ *
  * ■ サクラモード（data/sakura-kanji.js）
  *   { id: 'sakura_001', word: '教室', reading: 'きょうしつ', readings?: [...],
  *     tags: ['school', ...], sentence: '例文', meaning: '意味' }
@@ -88,6 +98,65 @@
     return list;
   }
 
+  const KANA_RE = /[ぁ-ゖァ-ヺー]/;
+  const KANJI_RE = /[一-鿿々〆]/;
+
+  function cartesian(lists) {
+    return lists.reduce((acc, list) => {
+      const next = [];
+      acc.forEach((prefix) => list.forEach((x) => next.push(prefix + x)));
+      return next;
+    }, ['']);
+  }
+
+  /**
+   * 漢字とかなが混ざる語: parts から「漢字の部分だけの読み」を作る（生活漢字・サクラモード）
+   * @returns {{ parts, kanjiReadings }} parts が無い・正しくないときは kanjiReadings: []
+   */
+  function buildKanjiParts(raw, item) {
+    const hira = (v) => (KA.Utils ? KA.Utils.kataToHira(String(v)) : String(v));
+    const warn = (msg) => console.warn(`[ReadingData] ${item.id}: ${msg}`);
+    const mixed = KANA_RE.test(item.word) && KANJI_RE.test(item.word);
+    if (!Array.isArray(raw.parts) || !raw.parts.length) {
+      if (mixed) warn(`漢字とかなが混ざる語「${item.word}」に parts（漢字の部分の読み）がありません`);
+      return { parts: null, kanjiReadings: [] };
+    }
+    const parts = raw.parts.map((p) => {
+      const part = { text: String(p.text || '') };
+      if (p.reading) part.readings = [p.reading].concat(toArray(p.readings)).map(hira);
+      return part;
+    });
+    let ok = true;
+    if (parts.map((p) => p.text).join('') !== item.word) {
+      warn(`parts をつなげた「${parts.map((p) => p.text).join('')}」が word「${item.word}」と一致しません`);
+      ok = false;
+    }
+    parts.forEach((p, i) => {
+      if (KANJI_RE.test(p.text) && !p.readings) {
+        warn(`parts[${i}]「${p.text}」に漢字があるのに読みがありません`);
+        ok = false;
+      }
+      if (p.readings && KANA_RE.test(p.text)) {
+        warn(`parts[${i}]「${p.text}」は漢字の部分とかなの部分を分けてください`);
+        ok = false;
+      }
+    });
+    const kanjiParts = parts.filter((p) => p.readings);
+    if (!kanjiParts.length) ok = false;
+    // 語全体の読みと合っているか（かなの部分はそのまま読む）
+    const whole = new Set(item.readings.map(hira));
+    const fulls = cartesian(parts.map((p) => p.readings || [hira(p.text)]));
+    fulls.forEach((f) => {
+      if (!whole.has(f)) {
+        warn(`parts の読みをつなげた「${f}」が、語全体の読み（${item.readings.join('・')}）にありません`);
+        ok = false;
+      }
+    });
+    if (!ok) return { parts, kanjiReadings: [] };
+    const kanjiReadings = cartesian(kanjiParts.map((p) => p.readings)).filter((r) => r && !whole.has(r));
+    return { parts, kanjiReadings: Array.from(new Set(kanjiReadings)) };
+  }
+
   /** 開発用のデータ検証（問題があれば console.warn） */
   function validate(raw, item) {
     const warn = (msg) => console.warn(`[ReadingData] ${item.id}: ${msg}`);
@@ -139,6 +208,12 @@
       item.fullReadings = fullReadings(segments);
       if (item.answerMode === 'whole') item.fullReadings = item.readings.slice();
       validate(raw, item);
+    }
+    // 漢字とかなが混ざる語（生活漢字・サクラモード）: 漢字の部分だけの読みも正解にする
+    if (ptype === 'life' || ptype === 'sakura') {
+      const kp = buildKanjiParts(raw, item);
+      item.parts = kp.parts;
+      item.kanjiReadings = kp.kanjiReadings;
     }
     // 生活漢字のカテゴリーは表示名でも指定できる
     if (ptype === 'life' && item.category) {
