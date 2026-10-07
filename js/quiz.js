@@ -97,7 +97,12 @@
   /* ---------- 文の中の読み・生活漢字 ---------- */
   function buildWordQuestion(item, ctx) {
     if (item.ptype === 'sentence') return buildSentenceQuestion(item, ctx);
+    // 語全体の読み + 漢字とかなが混ざる語では「漢字の部分だけの読み」（データの parts に明示したもの）
+    // どちらも完全一致で判定する（前方一致・部分一致・かなの自動削除はしない）
     const accepted = item.readings.map((r) => ({ reading: U.kataToHira(r), type: item.ptype }));
+    (item.kanjiReadings || []).forEach((r) => {
+      if (!accepted.some((a) => a.reading === r)) accepted.push({ reading: r, type: item.ptype, kanjiPart: true });
+    });
     const q = { type: item.ptype, kanji: item.id, word: item.word, entry: item, accepted };
     if (ctx && ctx.withChoices) Object.assign(q, buildWordChoices(item, accepted));
     return q;

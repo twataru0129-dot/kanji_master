@@ -937,6 +937,15 @@
   box-shadow: 0 2px 0 var(--blue-dark);
 }
 
+/* 漢字とかなが混ざる語の案内（例: 資源ごみ → しげん でも しげんごみ でもOK） */
+.parts-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
 /* 答え合わせ */
 .feedback-area {
   margin-top: 12px;

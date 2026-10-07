@@ -641,7 +641,7 @@
         h('span', { class: 'life-word' + (q.word.length >= 5 ? ' long' : '') }, q.word)
       );
       el.appendChild(card);
-      el.appendChild(h('p', { class: 'play-prompt' }, promptText));
+      el.appendChild(h('p', { class: 'play-prompt' }, promptText, partsHint(q, kids)));
       return card;
     }
     if (q.type === 'life') {
@@ -655,13 +655,24 @@
         h('span', { class: 'life-word' + (q.word.length >= 5 ? ' long' : '') }, q.word)
       );
       el.appendChild(card);
-      el.appendChild(h('p', { class: 'play-prompt' }, promptText));
+      el.appendChild(h('p', { class: 'play-prompt' }, promptText, partsHint(q, kids)));
       return card;
     }
     el.appendChild(h('p', { class: 'play-prompt' }, promptText));
     const card = h('div', { class: 'kanji-card', lang: 'ja' }, h('span', { class: 'kanji-big' }, q.kanji));
     el.appendChild(card);
     return card;
+  }
+
+  /**
+   * 漢字とかなが混ざる語（例: 資源ごみ）の案内。入力で答えるときだけ表示する（4択は語全体の読みで選ぶ）
+   * 漢字の部分だけ（しげん）でも、ことば全部（しげんごみ）でも正解になる
+   */
+  function partsHint(q, kids) {
+    if (!q.entry.kanjiReadings || !q.entry.kanjiReadings.length) return null;
+    if (QuizFlow.session && QuizFlow.session.inputMethod === 'choice') return null;
+    // 「なんと読む？」の下の行に出す（画面の配置を増やさない）
+    return h('span', { class: 'parts-hint' }, kids ? 'かんじの ぶぶんだけでも、ことば ぜんぶでも OK' : '漢字の部分だけでも、ことば全部でもOK');
   }
 
   /* ---------------- 文の中の読み: 漢字（　）送り仮名 の解答欄 ---------------- */
