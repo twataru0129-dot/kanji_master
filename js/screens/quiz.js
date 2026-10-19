@@ -638,7 +638,7 @@
         'div',
         { class: 'life-card sk-question-card', lang: 'ja' },
         h('span', { class: 'scene-label sk-question-label' }, h('span', { 'aria-hidden': 'true' }, '🌸'), ' サクラモード'),
-        h('span', { class: 'life-word' + (q.word.length >= 5 ? ' long' : '') }, q.word)
+        lifeWord(q)
       );
       el.appendChild(card);
       el.appendChild(h('p', { class: 'play-prompt' }, promptText, partsHint(q, kids)));
@@ -652,7 +652,7 @@
         { class: 'life-card' + (q.entry.display ? ' display-' + q.entry.display : ''), lang: 'ja' },
         h('span', { class: 'scene-label' }, h('span', { 'aria-hidden': 'true' }, cat.icon), ' ' + cat.label),
         q.entry.image ? h('img', { class: 'life-image', src: q.entry.image, alt: '' }) : null,
-        h('span', { class: 'life-word' + (q.word.length >= 5 ? ' long' : '') }, q.word)
+        lifeWord(q)
       );
       el.appendChild(card);
       el.appendChild(h('p', { class: 'play-prompt' }, promptText, partsHint(q, kids)));
@@ -664,15 +664,30 @@
     return card;
   }
 
+  /** 入力で答える、漢字とかなが混ざる語か（漢字の部分だけの読みも正解になる問題） */
+  function partsMode(q) {
+    if (!q.entry.kanjiReadings || !q.entry.kanjiReadings.length || !q.entry.parts) return false;
+    return !(QuizFlow.session && QuizFlow.session.inputMethod === 'choice');
+  }
+
+  /**
+   * 生活漢字・サクラモードの語。漢字とかなが混ざる語を入力で答えるときは、漢字の部分に下線を引く
+   * （下線は text-decoration なので、文字の位置や行の高さは変わらない）
+   */
+  function lifeWord(q) {
+    const cls = 'life-word' + (q.word.length >= 5 ? ' long' : '');
+    if (!partsMode(q)) return h('span', { class: cls }, q.word);
+    return h('span', { class: cls }, q.entry.parts.map((p) => (p.readings ? h('span', { class: 'kanji-part' }, p.text) : p.text)));
+  }
+
   /**
    * 漢字とかなが混ざる語（例: 資源ごみ）の案内。入力で答えるときだけ表示する（4択は語全体の読みで選ぶ）
    * 漢字の部分だけ（しげん）でも、ことば全部（しげんごみ）でも正解になる
    */
   function partsHint(q, kids) {
-    if (!q.entry.kanjiReadings || !q.entry.kanjiReadings.length) return null;
-    if (QuizFlow.session && QuizFlow.session.inputMethod === 'choice') return null;
+    if (!partsMode(q)) return null;
     // 「なんと読む？」の下の行に出す（画面の配置を増やさない）
-    return h('span', { class: 'parts-hint' }, kids ? 'かんじの ぶぶんだけでも、ことば ぜんぶでも OK' : '漢字の部分だけでも、ことば全部でもOK');
+    return h('span', { class: 'parts-hint' }, kids ? 'かんじの ところだけでも、ことば ぜんぶでも OK' : '漢字のところだけでも、ことば全部でもOK');
   }
 
   /* ---------------- 文の中の読み: 漢字（　）送り仮名 の解答欄 ---------------- */
@@ -914,6 +929,8 @@
       item.readings.length > 1 ? h('div', { class: 'muted small' }, (kids ? 'ほかの よみ：' : 'ほかの読み方：') + item.readings.slice(1).join('・')) : null,
       (q.type === 'life' || q.type === 'sakura') && item.sentence ? h('div', { class: 'word-sentence' }, '例：' + item.sentence) : null,
       item.meaning ? h('div', { class: 'word-meaning' }, (kids ? 'いみ：' : '意味：') + item.meaning) : null,
+      // 標識の表記から出題の表記を変えた語だけ（例: ドアでは「押」と書かれていることもあります。）
+      item.signNote ? h('div', { class: 'word-sign-note' }, h('span', { 'aria-hidden': 'true' }, '🪧 '), item.signNote) : null,
       cat && !kids ? h('div', { class: 'muted small' }, cat.icon + ' ' + cat.label) : null
     );
   }

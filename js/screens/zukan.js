@@ -154,6 +154,7 @@
             : null,
           row(kids ? 'ぶん' : '文', item.sentence ? h('span', null, before, h('mark', { class: 'sentence-target small' }, target), after) : null),
           row(kids ? 'いみ' : '意味', item.meaning || null),
+          row(kids ? 'ひょうしき' : '標識の表記', item.signNote || null),
           row(
             kids ? 'かんじ' : '使われている漢字',
             h(

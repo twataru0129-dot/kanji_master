@@ -6,6 +6,7 @@
  * ・difficulty: 1=やさしい 2=ふつう 3=むずかしい（ユーザーには選ばせず、将来の自動調整用）
  * ・readings: 別の読み方も正しい場合に追加（例：〜所 の「じょ／しょ」）
  * ・将来の看板風・画像付き問題用に image / display を追加できます。
+ * ・word は送り仮名を含む自然な形（押す）。標識での表記（押）は signText、答え合わせの補足は signNote に書きます。
  * ・id は学習記録のキーなので変更しないでください。追加は各カテゴリーの末尾に。
  */
 KanjiApp.ReadingData.registerLifeCategories([
@@ -177,8 +178,8 @@ KanjiApp.ReadingData.registerLife([
   /* ---------- 標識・案内表示 ---------- */
   { id: 'life_signs_001', word: '入口', reading: 'いりぐち', sentence: '入口はこちらです。', category: 'signs', difficulty: 1, tags: ['案内'], meaning: '中に入る所' },
   { id: 'life_signs_002', word: '出口', reading: 'でぐち', sentence: '出口は右側です。', category: 'signs', difficulty: 1, tags: ['案内'], meaning: '外に出る所' },
-  { id: 'life_signs_003', word: '押', reading: 'おす', sentence: 'ドアに「押」と書いてあります。', category: 'signs', difficulty: 2, tags: ['ドア'], meaning: 'ドアをおして開けること' },
-  { id: 'life_signs_004', word: '引', reading: 'ひく', sentence: 'ドアに「引」と書いてあります。', category: 'signs', difficulty: 2, tags: ['ドア'], meaning: 'ドアを引いて開けること' },
+  { id: 'life_signs_003', word: '押す', reading: 'おす', parts: [{ text: '押', reading: 'お' }, { text: 'す' }], signText: '押', signNote: 'ドアでは「押」と書かれていることもあります。', sentence: 'ドアを押すと開きます。', category: 'signs', difficulty: 2, tags: ['ドア'], meaning: '力を入れて、向こうへ動かすこと（ドアなら、おして開ける）' },
+  { id: 'life_signs_004', word: '引く', reading: 'ひく', parts: [{ text: '引', reading: 'ひ' }, { text: 'く' }], signText: '引', signNote: 'ドアでは「引」と書かれていることもあります。', sentence: 'ドアを引くと開きます。', category: 'signs', difficulty: 2, tags: ['ドア'], meaning: '手前へ動かすこと（ドアなら、引いて開ける）' },
   { id: 'life_signs_005', word: '化粧室', reading: 'けしょうしつ', sentence: '化粧室は二階にあります。', category: 'signs', difficulty: 3, tags: ['トイレ'], meaning: 'トイレ' },
   { id: 'life_signs_006', word: '男性', reading: 'だんせい', sentence: '男性用のトイレはこちらです。', category: 'signs', difficulty: 2, tags: ['トイレ'], meaning: '男の人' },
   { id: 'life_signs_007', word: '女性', reading: 'じょせい', sentence: '女性用のトイレはこちらです。', category: 'signs', difficulty: 2, tags: ['トイレ'], meaning: '女の人' },
