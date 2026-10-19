@@ -35,6 +35,13 @@
  *   読み込み時に、parts をつなぐと word になるか・語全体の読みと合うかを確かめ、合わなければ警告します。
  *   漢字とかなが混ざる語に parts が無いときも警告します。
  *
+ * ■ 標識の表記と出題の表記を分ける（v1.7.5〜）
+ *   { id: 'life_signs_003', word: '押す', reading: 'おす', parts: [{ text: '押', reading: 'お' }, { text: 'す' }],
+ *     signText: '押', signNote: 'ドアでは「押」と書かれていることもあります。' }
+ *   word … 出題に表示する言葉（送り仮名を含む自然な形）。
+ *   signText … 実際の標識・案内での表記（送り仮名を省いた形など）。答え合わせの補足 signNote と一緒に登録します。
+ *   漢字一文字だけの語なのに、読みが送り仮名まで含む（例: 引 → ひく）ときは警告します。
+ *
  * ■ サクラモード（data/sakura-kanji.js）
  *   { id: 'sakura_001', word: '教室', reading: 'きょうしつ', readings?: [...],
  *     tags: ['school', ...], sentence: '例文', meaning: '意味' }
@@ -157,6 +164,20 @@
     return { parts, kanjiReadings: Array.from(new Set(kanjiReadings)) };
   }
 
+  /**
+   * 送り仮名を省いた表示のまま、送り仮名まで答えさせていないか（例: word「引」reading「ひく」）
+   * 漢字一文字の語で、読みが「訓読み＋送り仮名」と一致するときに警告する
+   */
+  function checkOmittedOkurigana(item) {
+    if (Array.from(item.word).length !== 1 || !KANJI_RE.test(item.word) || !KA.KanjiDB) return;
+    const entry = KA.KanjiDB.get(item.word);
+    if (!entry) return;
+    const hira = (v) => (KA.Utils ? KA.Utils.kataToHira(String(v)) : String(v));
+    const withOkuri = (entry.kunyomi || []).filter((k) => /[^-]-[^-]/.test(k)).map((k) => hira(k.replace(/^-|-$/g, '').replace('-', '')));
+    const hit = item.readings.find((r) => withOkuri.includes(hira(r)));
+    if (hit) console.warn(`[ReadingData] ${item.id}: 「${item.word}」の読み「${hit}」は送り仮名を含みます。word を送り仮名つきの形にし、標識の表記は signText に書いてください`);
+  }
+
   /** 開発用のデータ検証（問題があれば console.warn） */
   function validate(raw, item) {
     const warn = (msg) => console.warn(`[ReadingData] ${item.id}: ${msg}`);
@@ -199,6 +220,8 @@
       meaning: raw.meaning || '',
       image: raw.image || null,
       display: raw.display || null,
+      signText: raw.signText || null, // 実際の標識での表記（例: 押）
+      signNote: raw.signNote || null, // 答え合わせの補足（例: ドアでは「押」と書かれていることもあります。）
     };
     if (segments) {
       // 文の中の読み: 漢字部分だけを答える
@@ -214,6 +237,7 @@
       const kp = buildKanjiParts(raw, item);
       item.parts = kp.parts;
       item.kanjiReadings = kp.kanjiReadings;
+      checkOmittedOkurigana(item);
     }
     // 生活漢字のカテゴリーは表示名でも指定できる
     if (ptype === 'life' && item.category) {

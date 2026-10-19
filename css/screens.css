@@ -938,6 +938,9 @@
 }
 
 /* 漢字とかなが混ざる語の案内（例: 資源ごみ → しげん でも しげんごみ でもOK） */
+/* 漢字とかなが混ざる語: 読む漢字の部分に下線（text-decoration なので文字の位置・行の高さは変わらない） */
+.life-word .kanji-part { text-decoration: underline; text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
+.word-sign-note { margin-top: 4px; font-size: 0.9rem; font-weight: 700; }
 .parts-hint {
   display: block;
   margin-top: 2px;
